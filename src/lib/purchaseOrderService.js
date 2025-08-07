@@ -8,8 +8,16 @@ class PurchaseOrderService {
     try {
       let url = CORE_API_ENDPOINTS.GET_ALL_PURCHASE_ORDERS;
       
-      // If any parameters are provided, send as POST with structured payload
-      if (params.search || params.sort || params.filter || params.pagination || Object.keys(params).length > 0) {
+      // Check if we have meaningful parameters (not just empty objects)
+      const hasParams = params && (
+        params.search || 
+        (params.sort && (params.sort.field || params.sort.order)) || 
+        (params.filter && Object.keys(params.filter).length > 0) || 
+        (params.pagination && (params.pagination.limit || params.pagination.page))
+      );
+      
+      if (hasParams) {
+        // Send as POST with structured payload when we have actual parameters
         const payload = {
           search: params.search || '',
           sort: params.sort || {
@@ -25,6 +33,7 @@ class PurchaseOrderService {
           }
         };
         
+        console.log('Making POST request with payload:', payload);
         const response = await coreApiClient.post(url, payload);
         
         return {
@@ -32,8 +41,9 @@ class PurchaseOrderService {
           data: response.data,
         };
       } else {
-        // Default GET request for all data
-        const response = await coreApiClient.get(url);
+        // Always use POST, but with empty params for getting all data
+        console.log('Making POST request with empty params for all data');
+        const response = await coreApiClient.post(url, {});
         
         return {
           success: true,
@@ -41,6 +51,8 @@ class PurchaseOrderService {
         };
       }
     } catch (error) {
+      console.error('Purchase Order Service Error:', error);
+      
       // Handle CORS errors specifically
       if (error.isCorsError) {
         return {
@@ -64,6 +76,14 @@ class PurchaseOrderService {
         const status = error.response.status;
         const message = error.response.data?.message || error.response.data?.error || 'Failed to fetch purchase orders';
         
+        console.error('HTTP Error Details:', {
+          status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url,
+          method: error.config?.method
+        });
+        
         return {
           success: false,
           error: message,
@@ -73,6 +93,12 @@ class PurchaseOrderService {
       }
 
       // Handle other errors
+      console.error('Other Error Details:', {
+        message: error.message,
+        stack: error.stack,
+        config: error.config
+      });
+      
       return {
         success: false,
         error: error.message || 'Failed to fetch purchase orders. Please try again.',

@@ -88,8 +88,8 @@ export function PurchaseOrderList() {
         console.log('Sending API request with structured payload:', params);
         result = await purchaseOrderService.getAllPurchaseOrders(params);
       } else {
-        // Load all data without parameters (simple GET request)
-        console.log('Loading all data with simple GET request');
+        // Load all data without parameters (POST with empty body)
+        console.log('Loading all data with POST request and empty body');
         result = await purchaseOrderService.getAllPurchaseOrders();
       }
       
@@ -97,11 +97,35 @@ export function PurchaseOrderList() {
       
       if (result.success) {
         // Ensure data is always an array
-        const data = Array.isArray(result.data) ? result.data : [];
+        let data = result.data;
+        
+        // Handle different response structures
+        if (Array.isArray(data)) {
+          console.log('Data is array, length:', data.length);
+        } else if (data && typeof data === 'object') {
+          // Check if data has a nested array (common API pattern)
+          if (Array.isArray(data.data)) {
+            data = data.data;
+            console.log('Found nested data array, length:', data.length);
+          } else if (Array.isArray(data.items)) {
+            data = data.items;
+            console.log('Found items array, length:', data.length);
+          } else if (Array.isArray(data.results)) {
+            data = data.results;
+            console.log('Found results array, length:', data.length);
+          } else {
+            console.warn('Data is object but no array found:', data);
+            data = [];
+          }
+        } else {
+          console.warn('Data is not array or object:', typeof data, data);
+          data = [];
+        }
+        
         console.log('Setting purchase orders data:', data);
         setPurchaseOrders(data);
       } else {
-        setError(result.error);
+        setError(result.error || 'Failed to load purchase orders');
         console.error('Failed to load purchase orders:', result.error);
       }
     } catch (error) {
