@@ -9,6 +9,7 @@ export const META_API_ENDPOINTS = {
   REFRESH_TOKEN: '/refresh-token',
   USER_PROFILE: '/user/profile',
   USERS: '/users',
+  VENDOR_NAMES: '/vendor_Names/getAll',
   // Add more auth-related endpoints as needed
 };
 

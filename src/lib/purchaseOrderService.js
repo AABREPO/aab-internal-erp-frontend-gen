@@ -1,5 +1,6 @@
 import { coreApiClient } from './api';
-import { CORE_API_ENDPOINTS } from './constants';
+import { metaApiClient } from './metaApi';
+import { CORE_API_ENDPOINTS, META_API_ENDPOINTS } from './constants';
 
 // Purchase Order service class
 class PurchaseOrderService {
@@ -214,10 +215,8 @@ class PurchaseOrderService {
   // Get all models
   async getAllModels() {
     try {
-      // Using POST to match the curl command structure
-      const response = await coreApiClient.post('/po_model/getAll', {
-        name: "Add your name in the body"
-      });
+      // Using GET as per API
+      const response = await coreApiClient.get('/po_model/getAll');
       
       return {
         success: true,
@@ -234,10 +233,8 @@ class PurchaseOrderService {
   // Get all brands
   async getAllBrands() {
     try {
-      // Using POST to match the curl command structure
-      const response = await coreApiClient.post('/po_brand/getAll', {
-        name: "Add your name in the body"
-      });
+      // Using GET as per API
+      const response = await coreApiClient.get('/po_brand/getAll');
       
       return {
         success: true,
@@ -298,6 +295,62 @@ class PurchaseOrderService {
       return {
         success: false,
         error: error.response?.data?.message || 'Failed to fetch categories',
+      };
+    }
+  }
+
+  // Get all site incharges
+  async getAllSiteIncharges() {
+    try {
+      const response = await coreApiClient.get('/site_incharge/getAll');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch site incharges',
+      };
+    }
+  }
+
+  // Get all vendor names
+  async getAllVendorNames() {
+    try {
+      const response = await metaApiClient.get(META_API_ENDPOINTS.VENDOR_NAMES);
+      
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      console.error('Vendor Names API Error:', error);
+      
+      // Handle different error types
+      if (error.message === 'Network Error' || error.code === 'ERR_NETWORK') {
+        return {
+          success: false,
+          error: 'Network Error: Unable to connect to the vendor service. Please check your internet connection.',
+          isNetworkError: true,
+        };
+      }
+
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || error.response.data?.error || 'Failed to fetch vendor names';
+        
+        return {
+          success: false,
+          error: message,
+          status: status,
+          isHttpError: true,
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Failed to fetch vendor names',
       };
     }
   }

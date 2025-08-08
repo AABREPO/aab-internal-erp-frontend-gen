@@ -19,12 +19,11 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     selectedItemId: '',
     model: '',
     brand: '',
-    order: '',
     item: '',
     quantity: '1',
     type: '',
     category: '',
-    orderGroup: ''
+    
   });
 
   // Dropdown options state
@@ -67,17 +66,16 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
 
 
   const handleAddItem = () => {
-    if (itemForm.item.trim()) {
+    if (itemForm.selectedItemId) {
       const newItem = {
-        id: Date.now(),
+        id: parseInt(itemForm.selectedItemId),
         model: itemForm.model,
         brand: itemForm.brand,
-        order: itemForm.order,
         item: itemForm.item,
         quantity: parseInt(itemForm.quantity) || 1,
         type: itemForm.type,
         category: itemForm.category,
-        orderGroup: itemForm.orderGroup
+        
       };
       setItemsList(prev => [...prev, newItem]);
       onAddItem(newItem);
@@ -85,12 +83,10 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         selectedItemId: '', 
         model: '', 
         brand: '', 
-        order: '', 
         item: '', 
         quantity: '1',
         type: '',
-        category: '', 
-        orderGroup: '' 
+        category: '' 
       });
     }
   };
@@ -200,6 +196,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
             <div className="pb-3 pl-5 space-y-4">
               {/* Main Item Details Section */}
               <div className="space-y-3">
+                {/* Category (moved from Other Details to top of Items) */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Category</label>
+                  <Select
+                    value={itemForm.category}
+                    onValueChange={(value) => setItemForm(prev => ({ ...prev, category: value }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {dropdownOptions.categories.map((category) => (
+                        <SelectItem key={category.id || category.category_id} value={category.name || category.category_name || category.id?.toString()}>
+                          {category.name || category.category_name || `Category ${category.id}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Model</label>
                   <Select
@@ -241,28 +256,33 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Order</label>
-                  <Input
-                    placeholder="Order"
-                    value={itemForm.order}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, order: e.target.value }))}
-                    className="h-8 text-xs border-gray-300 bg-white flex-1"
-                  />
-                </div>
+                
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Item</label>
                   <Select
-                    value={itemForm.item}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, item: value }))}
+                    value={itemForm.selectedItemId}
+                    onValueChange={(value) => {
+                      // Find the selected item object to capture its display name
+                      const selected = dropdownOptions.itemNames.find((i) =>
+                        ((i.id)?.toString()) === value
+                      );
+                      setItemForm(prev => ({ 
+                        ...prev, 
+                        selectedItemId: value,
+                        item: selected?.itemName || ''
+                      }));
+                    }}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
                       <SelectValue placeholder="Select item" />
                     </SelectTrigger>
                     <SelectContent>
                       {dropdownOptions.itemNames.map((item) => (
-                        <SelectItem key={item.id || item.item_id} value={item.name || item.item_name || item.id?.toString()}>
-                          {item.name || item.item_name || `Item ${item.id}`}
+                        <SelectItem 
+                          key={item.id || item.item_id} 
+                          value={(item.id)?.toString()}
+                        >
+                          {item.itemName}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -299,37 +319,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                 </div>
               </div>
 
-              {/* Other Details Section */}
-              <div className="border-t pt-3 space-y-3">
-                <div className="text-xs font-medium text-gray-700 mb-2">Other Details</div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Category</label>
-                  <Select
-                    value={itemForm.category}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, category: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dropdownOptions.categories.map((category) => (
-                        <SelectItem key={category.id || category.category_id} value={category.name || category.category_name || category.id?.toString()}>
-                          {category.name || category.category_name || `Category ${category.id}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Order Group</label>
-                  <Input
-                    placeholder="Order Group Names"
-                    value={itemForm.orderGroup}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, orderGroup: e.target.value }))}
-                    className="h-8 text-xs border-gray-300 bg-white flex-1"
-                  />
-                </div>
-              </div>
+              
               
               {/* Items Table */}
               {itemsList.length > 0 && (

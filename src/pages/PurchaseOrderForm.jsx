@@ -23,7 +23,7 @@ import { ArrowLeft, Settings, Trash2 } from "lucide-react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { purchaseOrderService } from '@/lib/purchaseOrderService';
 import { SidePanel } from '@/components/SidePanel';
-
+import { coreApiClient } from '@/lib/api';
 // Generate dummy suppliers
 const suppliers = [
   'ABC Supplies Inc.',
@@ -63,7 +63,7 @@ export function PurchaseOrderForm() {
     client_id: '',
     site_incharge_id: '',
     date: '',
-    site_incharge_mobile_number: '',
+    mobileNumber: '',
     created_by: 'admin',
     created_date_time: '',
     delete_status: false,
@@ -73,7 +73,7 @@ export function PurchaseOrderForm() {
     // UI Helper fields (not sent to API)
     vendor_name: '',
     client_name: '',
-    site_incharge_name: '',
+    siteEngineer: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -87,6 +87,16 @@ export function PurchaseOrderForm() {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [projectsError, setProjectsError] = useState(null);
+
+  // Vendor state
+  const [vendors, setVendors] = useState([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [vendorsError, setVendorsError] = useState(null);
+
+  // Site incharge state
+  const [siteIncharges, setSiteIncharges] = useState([]);
+  const [loadingIncharges, setLoadingIncharges] = useState(false);
+  const [inchargesError, setInchargesError] = useState(null);
 
 
 
@@ -109,7 +119,7 @@ export function PurchaseOrderForm() {
               client_id: data.client_id,
               site_incharge_id: data.site_incharge_id,
               date: data.date,
-              site_incharge_mobile_number: data.site_incharge_mobile_number,
+              mobileNumber: data.mobileNumber,
               created_by: data.created_by,
               created_date_time: data.created_date_time,
               delete_status: data.delete_status,
@@ -119,7 +129,7 @@ export function PurchaseOrderForm() {
               // UI Helper fields - use names directly from PO detail API
               vendor_name: data.vendor_name || data.vendor?.name || `Vendor ${data.vendor_id}`,
               client_name: data.client_name || data.client?.name || `Client ${data.client_id}`,
-              site_incharge_name: data.site_incharge_name || data.site_incharge?.name || `Site Incharge ${data.site_incharge_id}`,
+              siteEngineer: data.siteEngineer || data.site_incharge?.name || `Site Incharge ${data.site_incharge_id}`,
             });
           } else {
             setError(result.error);
@@ -171,6 +181,54 @@ export function PurchaseOrderForm() {
     loadProjects();
   }, []);
 
+  // Load vendor names for vendor dropdown
+  useEffect(() => {
+    const loadVendors = async () => {
+      try {
+        setLoadingVendors(true);
+        setVendorsError(null);
+        
+        const result = await purchaseOrderService.getAllVendorNames();
+        if (result.success) {
+          setVendors(Array.isArray(result.data) ? result.data : []);
+          console.log('Vendors loaded:', result.data);
+        } else {
+          setVendorsError(result.error);
+          console.error('Failed to load vendors:', result.error);
+        }
+      } catch (error) {
+        const errorMessage = 'Network error while loading vendors';
+        setVendorsError(errorMessage);
+        console.error('Error loading vendors:', error);
+      } finally {
+        setLoadingVendors(false);
+      }
+    };
+
+    loadVendors();
+  }, []);
+
+  // Load site incharges for dropdown
+  useEffect(() => {
+    const loadIncharges = async () => {
+      try {
+        setLoadingIncharges(true);
+        setInchargesError(null);
+        const result = await purchaseOrderService.getAllSiteIncharges();
+        if (result.success) {
+          setSiteIncharges(Array.isArray(result.data) ? result.data : []);
+        } else {
+          setInchargesError(result.error);
+        }
+      } catch (e) {
+        setInchargesError('Failed to load site incharges');
+      } finally {
+        setLoadingIncharges(false);
+      }
+    };
+    loadIncharges();
+  }, []);
+
   // Add keyboard event listener for backspace key
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -198,12 +256,14 @@ export function PurchaseOrderForm() {
 
 
   const handleAddItem = (item) => {
-    // Directly add item to purchase table with values from side panel
+    // Ensure we carry the numeric item id from API selection
+    const itemId = parseInt(item.id) || null;
     const newItem = {
       ...item,
-      quantity: item.quantity || 1, // Use quantity from side panel
-      unitPrice: 0, // Default price, can be edited in table
-      total: 0
+      id: itemId,
+      quantity: item.quantity || 1,
+      unitPrice: 0,
+      total: 0,
     };
     setSelectedItems(prev => [...prev, newItem]);
     setFormData(prev => ({
@@ -249,11 +309,11 @@ export function PurchaseOrderForm() {
       
       // Format purchase table for API
       const purchaseTable = selectedItems.map(item => ({
-        item_id: parseInt(item.id) || 1, // Use item id or default
-        category_id: 2, // Default category id - you may want to map this from item.category
-        model_id: 3, // Default model id - you may want to map this from item.model
-        brand_id: 4, // Default brand id - you may want to map this from item.brand
-        type_id: 5, // Default type id - you may want to map this from item.orderGroup
+        item_id: parseInt(item.id),
+        category_id: item.category_id ? parseInt(item.category_id) : 2,
+        model_id: item.model_id ? parseInt(item.model_id) : 3,
+        brand_id: item.brand_id ? parseInt(item.brand_id) : 4,
+        type_id: item.type_id ? parseInt(item.type_id) : 5,
         quantity: parseInt(item.quantity) || 1,
         amount: parseFloat(item.total) || 0
       }));
@@ -264,7 +324,7 @@ export function PurchaseOrderForm() {
         client_id: parseInt(formData.client_id) || 202,
         site_incharge_id: parseInt(formData.site_incharge_id) || 303,
         date: formData.date || new Date().toISOString().split('T')[0],
-        site_incharge_mobile_number: formData.site_incharge_mobile_number || "",
+        site_incharge_mobile_number: formData.mobileNumber || "",
         created_by: formData.created_by || "Admin",
         created_date_time: new Date().toISOString(),
         eno: formData.eno || "1",
@@ -277,16 +337,23 @@ export function PurchaseOrderForm() {
 
       console.log('Sending API payload:', apiPayload);
 
-      // Call the new API endpoint
+      // Call the new API endpoint (axios response)
       const response = await coreApiClient.post('/purchase_orders/save', apiPayload);
 
-      if (response.ok) {
-        const result = await response.json();
+      // Consider HTTP 200/201 as success
+      if (response?.status >= 200 && response?.status < 300) {
+        const result = response.data;
         console.log('Purchase order saved successfully:', result);
+
+        // Generate and download PDF using the current form values
+        await generatePurchaseOrderPDF({
+          form: formData,
+          items: selectedItems,
+        });
+
         navigate('/procurement/purchase-order');
       } else {
-        const errorData = await response.json();
-        console.error('Failed to save purchase order:', errorData);
+        console.error('Failed to save purchase order:', response);
         setError('Failed to save purchase order. Please try again.');
       }
     } catch (error) {
@@ -294,6 +361,132 @@ export function PurchaseOrderForm() {
       setError('An error occurred while saving. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Generate and download a PDF for the created Purchase Order
+  const generatePurchaseOrderPDF = async ({ form, items }) => {
+    try {
+      // Dynamic imports to avoid adding hard deps during SSR/build steps
+      const { jsPDF } = await import('jspdf');
+      const autoTable = (await import('jspdf-autotable')).default;
+
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const marginX = 40;
+      let cursorY = 40;
+
+      // Header box
+      doc.setLineWidth(1);
+      doc.rect(marginX, cursorY, pageWidth - marginX * 2, 60);
+
+      // Company Title
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.text('AA BUILDERS', pageWidth / 2, cursorY + 25, { align: 'center' });
+
+      // Purchase Order Label
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PURCHASE ORDER', marginX + 8, cursorY + 50);
+
+      // PO No
+      doc.setFont('helvetica', 'normal');
+      const poNo = form?.eno || '-';
+      doc.text(`PO No :   ${poNo}`, marginX + 8, cursorY + 70);
+
+      // Secondary header box (details)
+      cursorY += 80;
+      doc.rect(marginX, cursorY, pageWidth - marginX * 2, 90);
+
+      const leftX = marginX + 10;
+      const rightX = pageWidth / 2 + 10;
+      const lineH = 16;
+
+      // Left column details
+      doc.setFont('helvetica', 'bold');
+      doc.text('VENDOR:', leftX, cursorY + 20);
+      doc.text('DATE:', leftX, cursorY + 20 + lineH);
+      doc.setFont('helvetica', 'normal');
+      doc.text(form?.vendor_name || `Vendor ${form?.vendor_id || ''}` || '-', leftX + 70, cursorY + 20);
+      const dateStr = form?.date ? new Date(form.date).toLocaleDateString() : '-';
+      doc.text(dateStr, leftX + 70, cursorY + 20 + lineH);
+
+      // Right column details
+      doc.setFont('helvetica', 'bold');
+      doc.text('SITE NAME:', rightX, cursorY + 20);
+      doc.text('Site Incharge:', rightX, cursorY + 20 + lineH);
+      doc.text('Phone:', rightX, cursorY + 20 + lineH * 2);
+      doc.setFont('helvetica', 'normal');
+      doc.text(form?.client_name || `Client ${form?.client_id || ''}` || '-', rightX + 85, cursorY + 20);
+      doc.text(form?.site_incharge_name || `#${form?.site_incharge_id || ''}` || '-', rightX + 85, cursorY + 20 + lineH);
+      doc.text(form?.mobileNumber || '-', rightX + 85, cursorY + 20 + lineH * 2);
+
+      // Items table
+      const tableStartY = cursorY + 110;
+      const columns = [
+        { header: 'SNO', dataKey: 'sno' },
+        { header: 'ITEM NAME', dataKey: 'item' },
+        { header: 'CATEGORY', dataKey: 'category' },
+        { header: 'MODEL', dataKey: 'model' },
+        { header: 'BRAND', dataKey: 'brand' },
+        { header: 'TYPE', dataKey: 'type' },
+        { header: 'QTY', dataKey: 'qty' },
+        { header: 'PRICE', dataKey: 'price' },
+      ];
+
+      const rows = (items || []).map((it, idx) => ({
+        sno: idx + 1,
+        item: it.item || '-',
+        category: it.category || '-',
+        model: it.model || '-',
+        brand: it.brand || '-',
+        type: it.type || '-',
+        qty: it.quantity || 0,
+        price: (it.unitPrice || 0).toString(),
+      }));
+
+      autoTable(doc, {
+        startY: tableStartY,
+        head: [columns.map(c => c.header)],
+        body: rows.map(r => columns.map(c => r[c.dataKey])),
+        styles: { fontSize: 9, cellPadding: 6 },
+        headStyles: { fillColor: [240, 240, 240], textColor: 20, halign: 'left' },
+        theme: 'grid',
+        columnStyles: {
+          0: { cellWidth: 36 },
+          6: { cellWidth: 40, halign: 'right' },
+          7: { cellWidth: 60, halign: 'right' },
+        },
+        didDrawPage: (data) => {},
+      });
+
+      // Total row
+      const totalQty = (items || []).reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
+      const totalPrice = (items || []).reduce((sum, it) => sum + (parseFloat(it.total) || 0), 0);
+
+      const afterTableY = doc.lastAutoTable?.finalY || tableStartY;
+      const totalBoxWidth = 160;
+      const totalBoxX = pageWidth - marginX - totalBoxWidth;
+      const totalBoxY = afterTableY + 10;
+
+      doc.setFont('helvetica', 'bold');
+      doc.rect(totalBoxX, totalBoxY, totalBoxWidth, 40);
+      doc.text('TOTAL', totalBoxX + 10, totalBoxY + 25);
+      doc.text(String(totalQty), totalBoxX + 80, totalBoxY + 25, { align: 'right' });
+      doc.text(String(totalPrice.toFixed(2)), totalBoxX + 150, totalBoxY + 25, { align: 'right' });
+
+      // Footer
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`Created By: ${form?.created_by || '—'}`, marginX, totalBoxY + 70);
+      doc.text(`Date: ${new Date().toLocaleString()}`, pageWidth - marginX, totalBoxY + 70, { align: 'right' });
+
+      // Save
+      const fileName = `PO_${form?.eno || 'new'}.pdf`;
+      doc.save(fileName);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
     }
   };
 
@@ -383,13 +576,42 @@ export function PurchaseOrderForm() {
                     <p className="font-medium">{formData.vendor_name || `Vendor ${formData.vendor_id}`}</p>
                   </div>
                 ) : (
-                  <Input
-                    id="vendor_id"
-                    type="text"
-                    value={formData.vendor_name}
-                    onChange={(e) => handleInputChange('vendor_name', e.target.value)}
-                    placeholder="Enter vendor name"
-                  />
+                  <Select 
+                    value={formData.vendor_id} 
+                    onValueChange={(value) => {
+                      const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
+                      handleInputChange('vendor_id', value);
+                      handleInputChange('vendor_name', selectedVendor?.name || selectedVendor?.vendor_name || '');
+                    }}
+                    disabled={loadingVendors}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        loadingVendors 
+                          ? "Loading vendors..." 
+                          : vendorsError 
+                            ? "Error loading vendors" 
+                            : vendors.length === 0 
+                              ? "No vendors available" 
+                              : "Select a vendor"
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vendors.map((vendor) => (
+                        <SelectItem 
+                          key={vendor.id || vendor.vendor_id} 
+                          value={(vendor.id || vendor.vendor_id)?.toString()}
+                        >
+                          {vendor.name || vendor.vendor_name || `Vendor ${vendor.id || vendor.vendor_id}`}
+                        </SelectItem>
+                      ))}
+                      {vendorsError && (
+                        <SelectItem disabled value="error">
+                          {vendorsError}
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
               <div className="space-y-2">
@@ -422,8 +644,8 @@ export function PurchaseOrderForm() {
                     <SelectContent>
                       {projects.length > 0 ? (
                         projects.map((project) => (
-                          <SelectItem key={project.id || project.project_id} value={(project.id || project.project_id)?.toString()}>
-                            {project.name || project.project_name}
+                          <SelectItem key={project.id } value={(project.id )?.toString()}>
+                            { project.siteName}
                           </SelectItem>
                         ))
                       ) : (
@@ -442,16 +664,44 @@ export function PurchaseOrderForm() {
                 <Label htmlFor="site_incharge_id">Site Incharge</Label>
                 {isViewMode ? (
                   <div className="p-3 bg-gray-50 border rounded-md">
-                    <p className="font-medium">{formData.site_incharge_name || `Site Incharge ${formData.site_incharge_id}`}</p>
+                    <p className="font-medium">{formData.siteEngineer }</p>
                   </div>
                 ) : (
-                  <Input
-                    id="site_incharge_id"
-                    type="number"
-                    value={formData.site_incharge_id}
-                    onChange={(e) => handleInputChange('site_incharge_id', e.target.value)}
-                    placeholder="Enter site incharge ID"
-                  />
+                  <Select
+                    value={formData.site_incharge_id?.toString() || ''}
+                    onValueChange={(value) => {
+                      const selected = siteIncharges.find(s => (s.id)?.toString() === value);
+                      handleInputChange('site_incharge_id', value);
+                      handleInputChange('siteEngineer', selected?.siteEngineer || '');
+                      // Auto load mobile number if present
+                      if (selected?.mobileNumber) {
+                        handleInputChange('mobileNumber', selected.mobileNumber);
+                      }
+                    }}
+                    disabled={loadingIncharges}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={
+                        loadingIncharges
+                          ? 'Loading site incharges...'
+                          : inchargesError
+                            ? 'Error loading site incharges'
+                            : siteIncharges.length === 0
+                              ? 'No site incharges available'
+                              : 'Select site incharge'
+                      } />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {siteIncharges.map((s) => (
+                        <SelectItem key={s.id } value={(s.id)?.toString()}>
+                          {s.siteEngineer}
+                        </SelectItem>
+                      ))}
+                      {inchargesError && (
+                        <SelectItem disabled value="error">{inchargesError}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 )}
               </div>
               <div className="space-y-2">
@@ -473,13 +723,13 @@ export function PurchaseOrderForm() {
                 <Label htmlFor="site_incharge_mobile_number">Site Incharge Mobile Number</Label>
                 {isViewMode ? (
                   <div className="p-3 bg-gray-50 border rounded-md">
-                    <p className="font-medium">{formData.site_incharge_mobile_number}</p>
+                    <p className="font-medium">{formData.mobileNumber}</p>
                   </div>
                 ) : (
                   <Input
                     id="site_incharge_mobile_number"
-                    value={formData.site_incharge_mobile_number}
-                    onChange={(e) => handleInputChange('site_incharge_mobile_number', e.target.value)}
+                    value={formData.mobileNumber}
+                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
                     placeholder="Enter mobile number"
                   />
                 )}
