@@ -262,8 +262,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         />
                       </div>
                       {filterCategories(dropdownOptions.categories).slice(0, 10).map((category) => (
-                        <SelectItem key={category.id || category.category_id} value={category.name || category.category_name || category.id?.toString()}>
-                          {category.name || category.category_name || `Category ${category.id}`}
+                        <SelectItem key={category.id || category.category_id} value={category.category || category.id?.toString()}>
+                          {category.category || `Category ${category.id}`}
                         </SelectItem>
                       ))}
                       {filterCategories(dropdownOptions.categories).length === 0 && (
@@ -296,8 +296,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       </div>
                       {filterModels(dropdownOptions.models).length > 0 ? (
                         filterModels(dropdownOptions.models).slice(0, 10).map((model) => (
-                          <SelectItem key={model.id || model.model_id} value={model.name || model.model_name || model.id?.toString()}>
-                            {model.name || model.model_name || `Model ${model.id}`}
+                          <SelectItem key={model.id || model.model_id} value={model.model || model.id?.toString()}>
+                            {model.model || `Model ${model.id}`}
                           </SelectItem>
                         ))
                       ) : (
@@ -328,8 +328,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         />
                       </div>
                       {filterBrands(dropdownOptions.brands).slice(0, 10).map((brand) => (
-                        <SelectItem key={brand.id || brand.brand_id} value={brand.name || brand.brand_name || brand.id?.toString()}>
-                          {brand.name || brand.brand_name || `Brand ${brand.id}`}
+                        <SelectItem key={brand.id || brand.brand_id} value={brand.brand || brand.id?.toString()}>
+                          {brand.brand|| `Brand ${brand.id}`}
                         </SelectItem>
                       ))}
                       {filterBrands(dropdownOptions.brands).length === 0 && (
@@ -414,8 +414,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         />
                       </div>
                       {filterTypes(dropdownOptions.types).slice(0, 10).map((type) => (
-                        <SelectItem key={type.id || type.type_id} value={type.name || type.type_name || type.id?.toString()}>
-                          {type.name || type.type_name || `Type ${type.id}`}
+                        <SelectItem key={type.id || type.type_id} value={type.typeColor|| type.id?.toString()}>
+                          {type.typeColor || `Type ${type.id}`}
                         </SelectItem>
                       ))}
                       {filterTypes(dropdownOptions.types).length === 0 && (

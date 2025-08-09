@@ -701,7 +701,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                     onValueChange={(value) => {
                       const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
                       handleInputChange('vendor_id', value);
-                      handleInputChange('vendor_name', selectedVendor?.name || selectedVendor?.vendor_name || '');
+                      handleInputChange('vendor_name', selectedVendor?.vendorName || '');
                     }}
                     disabled={loadingVendors}
                   >
@@ -734,7 +734,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                           key={vendor.id || vendor.vendor_id} 
                           value={(vendor.id || vendor.vendor_id)?.toString()}
                         >
-                          {vendor.name || vendor.vendor_name || `Vendor ${vendor.id || vendor.vendor_id}`}
+                          {vendor.vendorName || `Vendor ${vendor.id || vendor.vendor_id}`}
                         </SelectItem>
                       ))}
                       {filterVendors(vendors).length === 0 && (
