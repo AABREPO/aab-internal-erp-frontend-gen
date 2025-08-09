@@ -602,8 +602,8 @@ export function PurchaseOrderList() {
                         </TableCell>
                         <TableCell>{po.site_incharge_mobile_number}</TableCell>
                         <TableCell>
-                          <span className="truncate max-w-xs block" title={po.po_notes}>
-                            {po.po_notes || '-'}
+                          <span className="truncate max-w-xs block" title={po.po_notes?.po_notes || '-'}>
+                            {po.po_notes?.po_notes || '-'}
                           </span>
                         </TableCell>
                         <TableCell>

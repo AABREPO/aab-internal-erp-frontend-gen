@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { ChevronDown, Users, Building, Package, Plus, Trash2 } from "lucide-react";
 import { coreApiClient } from '@/lib/api';
 import { purchaseOrderService } from '@/lib/purchaseOrderService';
@@ -34,6 +33,50 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     itemNames: [],
     categories: []
   });
+
+  // Local search terms for each select
+  const [searchModel, setSearchModel] = useState('');
+  const [searchBrand, setSearchBrand] = useState('');
+  const [searchType, setSearchType] = useState('');
+  const [searchItem, setSearchItem] = useState('');
+  const [searchCategory, setSearchCategory] = useState('');
+
+  // Filter helpers
+  const filterModels = (list) => {
+    const q = searchModel.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((m) =>
+      String(m.name || m.model_name || m.id || '').toLowerCase().includes(q)
+    );
+  };
+  const filterBrands = (list) => {
+    const q = searchBrand.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((b) =>
+      String(b.name || b.brand_name || b.id || '').toLowerCase().includes(q)
+    );
+  };
+  const filterTypes = (list) => {
+    const q = searchType.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((t) =>
+      String(t.name || t.type_name || t.id || '').toLowerCase().includes(q)
+    );
+  };
+  const filterItems = (list) => {
+    const q = searchItem.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((i) =>
+      String(i.itemName || i.name || i.id || '').toLowerCase().includes(q)
+    );
+  };
+  const filterCategories = (list) => {
+    const q = searchCategory.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((c) =>
+      String(c.name || c.category_name || c.id || '').toLowerCase().includes(q)
+    );
+  };
 
   // Loading states
   const [loading, setLoading] = useState({
@@ -207,11 +250,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {dropdownOptions.categories.map((category) => (
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search category..."
+                          value={searchCategory}
+                          onChange={(e) => setSearchCategory(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterCategories(dropdownOptions.categories).slice(0, 10).map((category) => (
                         <SelectItem key={category.id || category.category_id} value={category.name || category.category_name || category.id?.toString()}>
                           {category.name || category.category_name || `Category ${category.id}`}
                         </SelectItem>
                       ))}
+                      {filterCategories(dropdownOptions.categories).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -226,14 +283,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       <SelectValue placeholder={loading.models ? "Loading models..." : errors.models ? "Error loading models" : "Select model"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {dropdownOptions.models.length > 0 ? (
-                        dropdownOptions.models.map((model) => (
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search model..."
+                          value={searchModel}
+                          onChange={(e) => setSearchModel(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterModels(dropdownOptions.models).length > 0 ? (
+                        filterModels(dropdownOptions.models).slice(0, 10).map((model) => (
                           <SelectItem key={model.id || model.model_id} value={model.name || model.model_name || model.id?.toString()}>
                             {model.name || model.model_name || `Model ${model.id}`}
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="no-models" disabled>No models available</SelectItem>
+                        <SelectItem value="no-models" disabled>No results</SelectItem>
                       )}
                     </SelectContent>
                   </Select>
@@ -248,11 +316,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       <SelectValue placeholder="Select brand" />
                     </SelectTrigger>
                     <SelectContent>
-                      {dropdownOptions.brands.map((brand) => (
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search brand..."
+                          value={searchBrand}
+                          onChange={(e) => setSearchBrand(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterBrands(dropdownOptions.brands).slice(0, 10).map((brand) => (
                         <SelectItem key={brand.id || brand.brand_id} value={brand.name || brand.brand_name || brand.id?.toString()}>
                           {brand.name || brand.brand_name || `Brand ${brand.id}`}
                         </SelectItem>
                       ))}
+                      {filterBrands(dropdownOptions.brands).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -262,10 +344,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <Select
                     value={itemForm.selectedItemId}
                     onValueChange={(value) => {
-                      // Find the selected item object to capture its display name
-                      const selected = dropdownOptions.itemNames.find((i) =>
-                        ((i.id)?.toString()) === value
-                      );
+                      const selected = dropdownOptions.itemNames.find((i) => ((i.id)?.toString()) === value);
                       setItemForm(prev => ({ 
                         ...prev, 
                         selectedItemId: value,
@@ -277,7 +356,18 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       <SelectValue placeholder="Select item" />
                     </SelectTrigger>
                     <SelectContent>
-                      {dropdownOptions.itemNames.map((item) => (
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search item..."
+                          value={searchItem}
+                          onChange={(e) => setSearchItem(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterItems(dropdownOptions.itemNames).slice(0, 10).map((item) => (
                         <SelectItem 
                           key={item.id || item.item_id} 
                           value={(item.id)?.toString()}
@@ -285,6 +375,9 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           {item.itemName}
                         </SelectItem>
                       ))}
+                      {filterItems(dropdownOptions.itemNames).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -309,11 +402,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {dropdownOptions.types.map((type) => (
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search type..."
+                          value={searchType}
+                          onChange={(e) => setSearchType(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterTypes(dropdownOptions.types).slice(0, 10).map((type) => (
                         <SelectItem key={type.id || type.type_id} value={type.name || type.type_name || type.id?.toString()}>
                           {type.name || type.type_name || `Type ${type.id}`}
                         </SelectItem>
                       ))}
+                      {filterTypes(dropdownOptions.types).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -321,38 +428,35 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
 
               
               
-              {/* Items Table */}
-              {itemsList.length > 0 && (
-                <div className="mt-4">
-                  <div className="border rounded-lg bg-white">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-xs">Item</TableHead>
-                          <TableHead className="text-xs">Qty</TableHead>
-                          <TableHead className="text-xs">Type</TableHead>
-                          <TableHead className="text-xs w-8"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {itemsList.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="text-xs">{item.item}</TableCell>
-                            <TableCell className="text-xs">{item.quantity}</TableCell>
-                            <TableCell className="text-xs">{item.type}</TableCell>
-                            <TableCell>
-                              <Trash2 
-                                className="h-3 w-3 text-red-500 hover:text-red-700 cursor-pointer"
-                                onClick={() => handleDeleteItem(item.id)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+              {/* Preview (replaces items table) */}
+              <div className="mt-4">
+                {itemsList.length === 0 ? (
+                  <div className="text-xs text-gray-500">No items added yet</div>
+                ) : (
+                  <div className="space-y-2">
+                    {itemsList.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start justify-between rounded-md border bg-white px-3 py-2"
+                      >
+                        <div className="text-xs">
+                          <div className="font-medium text-gray-900">{item.item || '-'}</div>
+                          <div className="text-gray-600">
+                            Qty: {item.quantity || 1} • {item.type || '-'} • {item.category || '-'}
+                          </div>
+                          <div className="text-gray-500">
+                            Model: {item.model || '-'} • Brand: {item.brand || '-'}
+                          </div>
+                        </div>
+                        <Trash2
+                          className="h-3 w-3 text-red-500 hover:text-red-700 cursor-pointer mt-1"
+                          onClick={() => handleDeleteItem(item.id)}
+                        />
+                      </div>
+                    ))}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
         </div>

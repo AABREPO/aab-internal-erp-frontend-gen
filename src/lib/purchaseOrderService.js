@@ -230,6 +230,21 @@ class PurchaseOrderService {
     }
   }
 
+  // Utility: Get model name by id
+  async getModelNameById(modelId) {
+    try {
+      if (modelId == null) return null;
+      const result = await this.getAllModels();
+      if (!result.success || !Array.isArray(result.data)) return null;
+      const match = result.data.find(
+        (m) => (m.id ?? m.model_id)?.toString() === modelId.toString()
+      );
+      return match?.name || match?.model_name || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Get all brands
   async getAllBrands() {
     try {

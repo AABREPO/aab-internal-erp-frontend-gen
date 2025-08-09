@@ -48,12 +48,13 @@ const availableItems = [
   { id: 8, code: 'ITEM-008', name: 'Paint Cans 5L', unitPrice: 28.00, category: 'Finishing' }
 ];
 
-export function PurchaseOrderForm() {
+export function PurchaseOrderForm({ modeOverride } = {}) {
   const navigate = useNavigate();
   const { id } = useParams();
-  const isEditMode = !!id;
-  const isViewMode = window.location.pathname.includes('/view/');
-  const isCreateMode = !id && !isViewMode;
+  // Resolve mode either from override or from route
+  const isViewMode = modeOverride ? modeOverride === 'view' : window.location.pathname.includes('/view/');
+  const isEditMode = modeOverride ? modeOverride === 'edit' : !!id && !isViewMode;
+  const isCreateMode = modeOverride ? modeOverride === 'create' : !id && !isViewMode;
 
   const [formData, setFormData] = useState({
     // API Fields - Core data structure
@@ -87,16 +88,49 @@ export function PurchaseOrderForm() {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(false);
   const [projectsError, setProjectsError] = useState(null);
+  const [filterSearchProject, setFilterSearchProject] = useState('');
+
+  const filterProjects = (list) => {
+    const q = filterSearchProject.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((p) =>
+      String(p.name || p.project_name || p.siteName || p.id || '')
+        .toLowerCase()
+        .includes(q)
+    );
+  };
 
   // Vendor state
   const [vendors, setVendors] = useState([]);
   const [loadingVendors, setLoadingVendors] = useState(false);
   const [vendorsError, setVendorsError] = useState(null);
+  const [filterSearchVendor, setFilterSearchVendor] = useState('');
+
+  const filterVendors = (list) => {
+    const q = filterSearchVendor.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter(v =>
+      String(v.name || v.vendor_name || v.id || '')
+        .toLowerCase()
+        .includes(q)
+    );
+  };
 
   // Site incharge state
   const [siteIncharges, setSiteIncharges] = useState([]);
   const [loadingIncharges, setLoadingIncharges] = useState(false);
   const [inchargesError, setInchargesError] = useState(null);
+  const [filterSearchIncharge, setFilterSearchIncharge] = useState('');
+
+  const filterIncharges = (list) => {
+    const q = filterSearchIncharge.trim().toLowerCase();
+    if (!q) return list || [];
+    return (list || []).filter((s) =>
+      String(s.siteEngineer || s.name || s.id || '')
+        .toLowerCase()
+        .includes(q)
+    );
+  };
 
 
 
@@ -119,7 +153,7 @@ export function PurchaseOrderForm() {
               client_id: data.client_id,
               site_incharge_id: data.site_incharge_id,
               date: data.date,
-              mobileNumber: data.mobileNumber,
+              site_incharge_mobile_number: data.site_incharge_mobile_number,
               created_by: data.created_by,
               created_date_time: data.created_date_time,
               delete_status: data.delete_status,
@@ -131,6 +165,55 @@ export function PurchaseOrderForm() {
               client_name: data.client_name || data.client?.name || `Client ${data.client_id}`,
               siteEngineer: data.siteEngineer || data.site_incharge?.name || `Site Incharge ${data.site_incharge_id}`,
             });
+
+            // Normalize and load items into selectedItems for view/edit table rendering
+            try {
+              const apiItems = Array.isArray(data.purchase_table) ? data.purchase_table : [];
+
+              // Load lookups to resolve names from ids
+              const lookups = await loadCatalogLookups();
+
+              const normalized = apiItems.map((row) => {
+                const quantityRaw = row.quantity ?? row.qty ?? row.count ?? 1;
+                const quantity = parseInt(quantityRaw) || 1;
+
+                // Try to infer unit price and total from common shapes
+                const unitRaw = row.unitPrice ?? row.price ?? row.rate;
+                let unitPrice = parseFloat(unitRaw);
+                if (isNaN(unitPrice)) {
+                  const amount = parseFloat(row.amount ?? row.total);
+                  unitPrice = !isNaN(amount) && quantity ? amount / quantity : 0;
+                }
+
+                const totalRaw = row.total ?? row.amount ?? (unitPrice * quantity);
+                const total = parseFloat(totalRaw) || 0;
+                // const model_name = await purchaseOrderService.getModelNameById(row.model_id);
+
+                const itemId = row.item_id ?? row.id ?? row.itemId;
+                const modelId = row.model_id;
+                const brandId = row.brand_id;
+                const typeId = row.type_id;
+                const categoryId = row.category_id;
+
+                const getFrom = (map, id) => map.get((id ?? '').toString());
+
+                return {
+                  id: parseInt(itemId) || null,
+                  item: getFrom(lookups.itemsMap, itemId) || row.item_name || row.itemName || `#${itemId ?? ''}`,
+                  model: getFrom(lookups.modelsMap, modelId) || row.model_name || row.modelName || '-',
+                  brand: getFrom(lookups.brandsMap, brandId) || row.brand_name || row.brandName || '-',
+                  type: getFrom(lookups.typesMap, typeId) || row.type_name || row.typeName || '-',
+                  category: getFrom(lookups.categoriesMap, categoryId) || row.category_name || row.categoryName || '-',
+                  quantity,
+                  unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
+                  total,
+                };
+              });
+              setSelectedItems(normalized);
+            } catch (mapErr) {
+              console.warn('Failed to normalize purchase_table for display:', mapErr);
+              setSelectedItems([]);
+            }
           } else {
             setError(result.error);
             console.error('Failed to load purchase order:', result.error);
@@ -324,14 +407,14 @@ export function PurchaseOrderForm() {
         client_id: parseInt(formData.client_id) || 202,
         site_incharge_id: parseInt(formData.site_incharge_id) || 303,
         date: formData.date || new Date().toISOString().split('T')[0],
-        site_incharge_mobile_number: formData.mobileNumber || "",
+        site_incharge_mobile_number: formData.site_incharge_mobile_number || "",
         created_by: formData.created_by || "Admin",
         created_date_time: new Date().toISOString(),
         eno: formData.eno || "1",
         delete_status: false,
-        purchaseTable: purchaseTable,
-        poNotes: {
-          note: formData.po_notes || ""
+        purchase_table: purchaseTable,
+        po_notes: {
+          po_notes: formData.po_notes || ""
         }
       };
 
@@ -362,6 +445,39 @@ export function PurchaseOrderForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helpers: build lookup maps and resolve names from ids for PO table
+  const buildLookupMap = (list, idKeys = ['id'], nameKeys = ['name']) => {
+    const map = new Map();
+    (list || []).forEach((entry) => {
+      const idKey = idKeys.find((k) => entry[k] != null);
+      const nameKey = nameKeys.find((k) => entry[k] != null);
+      if (idKey) {
+        const id = (entry[idKey] ?? '').toString();
+        const name = nameKey ? entry[nameKey] : undefined;
+        if (id) map.set(id, name ?? `#${entry[idKey]}`);
+      }
+    });
+    return map;
+  };
+
+  const loadCatalogLookups = async () => {
+    const [itemsRes, modelsRes, brandsRes, typesRes, categoriesRes] = await Promise.all([
+      purchaseOrderService.getAllItemNames(),
+      purchaseOrderService.getAllModels(),
+      purchaseOrderService.getAllBrands(),
+      purchaseOrderService.getAllTypes(),
+      purchaseOrderService.getAllCategories(),
+    ]);
+
+    const itemsMap = buildLookupMap(itemsRes.success ? itemsRes.data : [], ['id','item_id'], ['itemName','item_name','name']);
+    const modelsMap = buildLookupMap(modelsRes.success ? modelsRes.data : [], ['id','model_id'], ['model','name']);
+    const brandsMap = buildLookupMap(brandsRes.success ? brandsRes.data : [], ['id','brand_id'], ['brand','name']);
+    const typesMap = buildLookupMap(typesRes.success ? typesRes.data : [], ['id','type_id'], ['typeColor','name']);
+    const categoriesMap = buildLookupMap(categoriesRes.success ? categoriesRes.data : [], ['id','category_id'], ['category','name']);
+
+    return { itemsMap, modelsMap, brandsMap, typesMap, categoriesMap };
   };
 
   // Generate and download a PDF for the created Purchase Order
@@ -420,7 +536,7 @@ export function PurchaseOrderForm() {
       doc.setFont('helvetica', 'normal');
       doc.text(form?.client_name || `Client ${form?.client_id || ''}` || '-', rightX + 85, cursorY + 20);
       doc.text(form?.site_incharge_name || `#${form?.site_incharge_id || ''}` || '-', rightX + 85, cursorY + 20 + lineH);
-      doc.text(form?.mobileNumber || '-', rightX + 85, cursorY + 20 + lineH * 2);
+      doc.text(form?.site_incharge_mobile_number || '-', rightX + 85, cursorY + 20 + lineH * 2);
 
       // Items table
       const tableStartY = cursorY + 110;
@@ -540,10 +656,14 @@ export function PurchaseOrderForm() {
           </div>
           <div>
             <h1 className="text-xl font-bold">
-              {isViewMode ? 'View Purchase Order' : isEditMode ? 'Edit Purchase Order' : 'Create Purchase Order'}
+              {isViewMode && 'View Purchase Order'}
+              {isEditMode && 'Edit Purchase Order'}
+              {isCreateMode && 'Create Purchase Order'}
             </h1>
             <p className="text-gray-600">
-              {isViewMode ? 'View purchase order details' : isEditMode ? 'Update purchase order details' : 'Create a new purchase order'}
+              {isViewMode && 'View purchase order details'}
+              {isEditMode && 'Update purchase order details'}
+              {isCreateMode && 'Create a new purchase order'}
             </p>
           </div>
         </div>
@@ -597,7 +717,19 @@ export function PurchaseOrderForm() {
                       } />
                     </SelectTrigger>
                     <SelectContent>
-                      {vendors.map((vendor) => (
+                      {/* Local search */}
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search vendor..."
+                          value={filterSearchVendor}
+                          onChange={(e) => setFilterSearchVendor(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {(filterVendors(vendors).slice(0, 10)).map((vendor) => (
                         <SelectItem 
                           key={vendor.id || vendor.vendor_id} 
                           value={(vendor.id || vendor.vendor_id)?.toString()}
@@ -605,6 +737,9 @@ export function PurchaseOrderForm() {
                           {vendor.name || vendor.vendor_name || `Vendor ${vendor.id || vendor.vendor_id}`}
                         </SelectItem>
                       ))}
+                      {filterVendors(vendors).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                       {vendorsError && (
                         <SelectItem disabled value="error">
                           {vendorsError}
@@ -642,15 +777,27 @@ export function PurchaseOrderForm() {
                       } />
                     </SelectTrigger>
                     <SelectContent>
-                      {projects.length > 0 ? (
-                        projects.map((project) => (
-                          <SelectItem key={project.id } value={(project.id )?.toString()}>
-                            { project.siteName}
+                      {/* Local search for projects */}
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search project..."
+                          value={filterSearchProject}
+                          onChange={(e) => setFilterSearchProject(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterProjects(projects).length > 0 ? (
+                        filterProjects(projects).slice(0, 10).map((project) => (
+                          <SelectItem key={project.id || project.project_id} value={(project.id || project.project_id)?.toString()}>
+                            {project.name || project.project_name || project.siteName}
                           </SelectItem>
                         ))
                       ) : (
                         <SelectItem value="no-projects" disabled>
-                          {projectsError ? "Failed to load projects" : "No projects available"}
+                          {projectsError ? "Failed to load projects" : "No results"}
                         </SelectItem>
                       )}
                     </SelectContent>
@@ -674,8 +821,8 @@ export function PurchaseOrderForm() {
                       handleInputChange('site_incharge_id', value);
                       handleInputChange('siteEngineer', selected?.siteEngineer || '');
                       // Auto load mobile number if present
-                      if (selected?.mobileNumber) {
-                        handleInputChange('mobileNumber', selected.mobileNumber);
+                      if (selected?.site_incharge_mobile_number) {
+                        handleInputChange('site_incharge_mobile_number', selected.site_incharge_mobile_number);
                       }
                     }}
                     disabled={loadingIncharges}
@@ -692,11 +839,26 @@ export function PurchaseOrderForm() {
                       } />
                     </SelectTrigger>
                     <SelectContent>
-                      {siteIncharges.map((s) => (
+                      {/* Local search for site engineers */}
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search site engineer..."
+                          value={filterSearchIncharge}
+                          onChange={(e) => setFilterSearchIncharge(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterIncharges(siteIncharges).slice(0, 10).map((s) => (
                         <SelectItem key={s.id } value={(s.id)?.toString()}>
                           {s.siteEngineer}
                         </SelectItem>
                       ))}
+                      {filterIncharges(siteIncharges).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
                       {inchargesError && (
                         <SelectItem disabled value="error">{inchargesError}</SelectItem>
                       )}
@@ -723,13 +885,13 @@ export function PurchaseOrderForm() {
                 <Label htmlFor="site_incharge_mobile_number">Site Incharge Mobile Number</Label>
                 {isViewMode ? (
                   <div className="p-3 bg-gray-50 border rounded-md">
-                    <p className="font-medium">{formData.mobileNumber}</p>
+                    <p className="font-medium">{formData.site_incharge_mobile_number}</p>
                   </div>
                 ) : (
                   <Input
                     id="site_incharge_mobile_number"
-                    value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', e.target.value)}
+                    value={formData.site_incharge_mobile_number}
+                    onChange={(e) => handleInputChange('site_incharge_mobile_number', e.target.value)}
                     placeholder="Enter mobile number"
                   />
                 )}
@@ -739,12 +901,12 @@ export function PurchaseOrderForm() {
               <Label htmlFor="po_notes">Purchase Order Notes</Label>
               {isViewMode ? (
                 <div className="p-3 bg-gray-50 border rounded-md min-h-[40px]">
-                  <p className="font-medium">{formData.po_notes || 'No notes available'}</p>
+                  <p className="font-medium">{formData.po_notes?.po_notes || 'No notes available'}</p>
                 </div>
               ) : (
                 <Input
                   id="po_notes"
-                  value={formData.po_notes || ''}
+                  value={formData.po_notes?.po_notes || ''}
                   onChange={(e) => handleInputChange('po_notes', e.target.value)}
                   placeholder="Enter additional notes"
                 />
@@ -761,7 +923,48 @@ export function PurchaseOrderForm() {
             <CardTitle>Purchase Table</CardTitle>
           </CardHeader>
           <CardContent>
-            {selectedItems.length > 0 ? (
+            {isViewMode ? (
+              // View-only table (no inputs or actions)
+              selectedItems.length > 0 ? (
+                <div className="border rounded-lg">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Item</TableHead>
+                        <TableHead>Model</TableHead>
+                        <TableHead>Brand</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Unit Price</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedItems.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.item || 'N/A'}</TableCell>
+                          <TableCell>{item.model || 'N/A'}</TableCell>
+                          <TableCell>{item.brand || 'N/A'}</TableCell>
+                          <TableCell>{item.type || 'N/A'}</TableCell>
+                          <TableCell>{`$${(item.unitPrice || 0).toFixed(2)}`}</TableCell>
+                          <TableCell>{item.quantity || 1}</TableCell>
+                          <TableCell>{`$${(item.total || 0).toFixed(2)}`}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                  <div className="p-4 border-t bg-gray-50">
+                    <div className="flex justify-end">
+                      <p className="text-lg font-semibold">
+                        Total: ${selectedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No items in purchase table</div>
+              )
+            ) : selectedItems.length > 0 ? (
               <div className="border rounded-lg">
                 <Table>
                   <TableHeader>
@@ -866,11 +1069,8 @@ export function PurchaseOrderForm() {
           <Button variant="outline" onClick={handleCancel}>
             {isViewMode ? 'Back' : 'Cancel'}
           </Button>
-          {!isViewMode && (
-            <Button onClick={handleSave}>
-              {isEditMode ? 'Update Purchase Order' : 'Create Purchase Order'}
-            </Button>
-          )}
+          {isEditMode && <Button onClick={handleSave}>Update Purchase Order</Button>}
+          {isCreateMode && <Button onClick={handleSave}>Create Purchase Order</Button>}
         </div>
       </div>
       </div>
