@@ -48,6 +48,19 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const startIdx = (page - 1) * pageSize;
+  const endIdx = Math.min(startIdx + pageSize, total);
+  const pageItems = filtered.slice(startIdx, endIdx);
+
+  // Reset page on new search
+  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [totalPages]);
+
   const resolveName = (row) => nameKeyCandidates.map(k => row[k]).find(Boolean) || row.name || '';
   const resolveId = (row) => idKeyCandidates.map(k => row[k]).find(Boolean) || row.id;
 
@@ -111,7 +124,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((it) => {
+                {pageItems.map((it) => {
                   const id = resolveId(it);
                   const name = resolveName(it) || `#${id}`;
                   return (
@@ -134,13 +147,48 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                     </TableRow>
                   );
                 })}
-                {filtered.length === 0 && (
+                {pageItems.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={3} className="text-sm text-gray-500 text-center">No records</TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+            {/* Pagination footer */}
+            <div className="flex items-center justify-between px-3 py-2 border-t bg-gray-50">
+              <div className="text-xs text-gray-600">
+                Showing {total === 0 ? 0 : startIdx + 1}–{endIdx} of {total}
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-8 text-xs border rounded px-2 bg-white"
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(parseInt(e.target.value) || 10);
+                    setPage(1);
+                  }}
+                >
+                  {[5,10,20,50].map(sz => <option key={sz} value={sz}>{sz}/page</option>)}
+                </select>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >
+                  Prev
+                </Button>
+                <div className="text-xs text-gray-700">{page} / {totalPages}</div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </CardContent>
