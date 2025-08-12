@@ -482,129 +482,142 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
   // Generate and download a PDF for the created Purchase Order
   const generatePurchaseOrderPDF = async ({ form, items }) => {
-    try {
-      // Dynamic imports to avoid adding hard deps during SSR/build steps
-      const { jsPDF } = await import('jspdf');
-      const autoTable = (await import('jspdf-autotable')).default;
+  try {
+    const { jsPDF } = await import('jspdf');
+    const autoTable = (await import('jspdf-autotable')).default;
 
-      const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const marginX = 40;
-      let cursorY = 40;
+    const doc = new jsPDF();
 
-      // Header box
-      doc.setLineWidth(1);
-      doc.rect(marginX, cursorY, pageWidth - marginX * 2, 60);
+    // ===== HEADER BOX =====
+    doc.setDrawColor(0);
+    doc.setLineWidth(0.5);
+    doc.rect(10, 10, 190, 41.8);
 
-      // Company Title
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(18);
-      doc.text('AA BUILDERS', pageWidth / 2, cursorY + 25, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("PURCHASE ORDER", 12, 22);
 
-      // Purchase Order Label
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PURCHASE ORDER', marginX + 8, cursorY + 50);
+    doc.text(`PO No : ${form?.eno || "-"}`, 12, 28);
 
-      // PO No
-      doc.setFont('helvetica', 'normal');
-      const poNo = form?.eno || '-';
-      doc.text(`PO No :   ${poNo}`, marginX + 8, cursorY + 70);
+    doc.setFontSize(16);
+    doc.text("AA BUILDERS", 105, 17, { align: "center" });
 
-      // Secondary header box (details)
-      cursorY += 80;
-      doc.rect(marginX, cursorY, pageWidth - marginX * 2, 90);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("181 Madurai Road, Srivilliputtur - 626 125", 105, 28, { align: "center" });
 
-      const leftX = marginX + 10;
-      const rightX = pageWidth / 2 + 10;
-      const lineH = 16;
+    doc.line(10, 30, 200, 30);
 
-      // Left column details
-      doc.setFont('helvetica', 'bold');
-      doc.text('VENDOR:', leftX, cursorY + 20);
-      doc.text('DATE:', leftX, cursorY + 20 + lineH);
-      doc.setFont('helvetica', 'normal');
-      doc.text(form?.vendor_name || `Vendor ${form?.vendor_id || ''}` || '-', leftX + 70, cursorY + 20);
-      const dateStr = form?.date ? new Date(form.date).toLocaleDateString() : '-';
-      doc.text(dateStr, leftX + 70, cursorY + 20 + lineH);
+    doc.setFont("helvetica", "bold");
+    doc.text(`VENDOR:`, 12, 37);
+    doc.setFont("helvetica", "normal");
+    doc.text(form?.vendor_name || `Vendor ${form?.vendor_id || ''}` || '-', 35, 37);
 
-      // Right column details
-      doc.setFont('helvetica', 'bold');
-      doc.text('SITE NAME:', rightX, cursorY + 20);
-      doc.text('Site Incharge:', rightX, cursorY + 20 + lineH);
-      doc.text('Phone:', rightX, cursorY + 20 + lineH * 2);
-      doc.setFont('helvetica', 'normal');
-      doc.text(form?.client_name || `Client ${form?.client_id || ''}` || '-', rightX + 85, cursorY + 20);
-      doc.text(form?.site_incharge_name || `#${form?.site_incharge_id || ''}` || '-', rightX + 85, cursorY + 20 + lineH);
-      doc.text(form?.site_incharge_mobile_number || '-', rightX + 85, cursorY + 20 + lineH * 2);
+    doc.setFont("helvetica", "bold");
+    doc.text(`DATE:`, 12, 43);
+    doc.setFont("helvetica", "normal");
+    const dateStr = form?.date ? new Date(form.date).toLocaleDateString('en-GB') : '-';
+    doc.text(dateStr, 35, 43);
 
-      // Items table
-      const tableStartY = cursorY + 110;
-      const columns = [
-        { header: 'SNO', dataKey: 'sno' },
-        { header: 'ITEM NAME', dataKey: 'item' },
-        { header: 'CATEGORY', dataKey: 'category' },
-        { header: 'MODEL', dataKey: 'model' },
-        { header: 'BRAND', dataKey: 'brand' },
-        { header: 'TYPE', dataKey: 'type' },
-        { header: 'QTY', dataKey: 'qty' },
-        { header: 'PRICE', dataKey: 'price' },
-      ];
+    doc.setFont("helvetica", "bold");
+    doc.text("SITE NAME:", 107, 37);
+    doc.text("Site Incharge:", 104, 43);
+    doc.setFont("helvetica", "normal");
+    doc.text(form?.client_name || `Client ${form?.client_id || ''}` || '-', 130, 37);
+    doc.text(form?.site_incharge_name || `#${form?.site_incharge_id || ''}` || '-', 130, 43);
 
-      const rows = (items || []).map((it, idx) => ({
-        sno: idx + 1,
-        item: it.item || '-',
-        category: it.category || '-',
-        model: it.model || '-',
-        brand: it.brand || '-',
-        type: it.type || '-',
-        qty: it.quantity || 0,
-        price: (it.unitPrice || 0).toString(),
-      }));
-
-      autoTable(doc, {
-        startY: tableStartY,
-        head: [columns.map(c => c.header)],
-        body: rows.map(r => columns.map(c => r[c.dataKey])),
-        styles: { fontSize: 9, cellPadding: 6 },
-        headStyles: { fillColor: [240, 240, 240], textColor: 20, halign: 'left' },
-        theme: 'grid',
-        columnStyles: {
-          0: { cellWidth: 36 },
-          6: { cellWidth: 40, halign: 'right' },
-          7: { cellWidth: 60, halign: 'right' },
-        },
-        didDrawPage: (data) => {},
-      });
-
-      // Total row
-      const totalQty = (items || []).reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
-      const totalPrice = (items || []).reduce((sum, it) => sum + (parseFloat(it.total) || 0), 0);
-
-      const afterTableY = doc.lastAutoTable?.finalY || tableStartY;
-      const totalBoxWidth = 160;
-      const totalBoxX = pageWidth - marginX - totalBoxWidth;
-      const totalBoxY = afterTableY + 10;
-
-      doc.setFont('helvetica', 'bold');
-      doc.rect(totalBoxX, totalBoxY, totalBoxWidth, 40);
-      doc.text('TOTAL', totalBoxX + 10, totalBoxY + 25);
-      doc.text(String(totalQty), totalBoxX + 80, totalBoxY + 25, { align: 'right' });
-      doc.text(String(totalPrice.toFixed(2)), totalBoxX + 150, totalBoxY + 25, { align: 'right' });
-
-      // Footer
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.text(`Created By: ${form?.created_by || '—'}`, marginX, totalBoxY + 70);
-      doc.text(`Date: ${new Date().toLocaleString()}`, pageWidth - marginX, totalBoxY + 70, { align: 'right' });
-
-      // Save
-      const fileName = `PO_${form?.eno || 'new'}.pdf`;
-      doc.save(fileName);
-    } catch (err) {
-      console.error('Failed to generate PDF:', err);
+    if (form?.site_incharge_mobile_number) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Phone:", 115, 49);
+      doc.setFont("helvetica", "normal");
+      doc.text(`+91 ${form.site_incharge_mobile_number}`, 130, 49);
     }
-  };
+
+    // ===== TABLE =====
+    const tableBody = (items || []).map((it, idx) => [
+      idx + 1,
+      it.item || '-',
+      it.category || '-',
+      it.model || '-',
+      it.brand || '-',
+      it.type || '-',
+      it.quantity || 0,
+      it.unitPrice || 0
+    ]);
+
+    // Pad empty rows so table height is consistent
+    while (tableBody.length < 24) {
+      tableBody.push(["", "", "", "", "", "", "", ""]);
+    }
+
+    const totalQty = (items || []).reduce((sum, it) => sum + (parseFloat(it.quantity) || 0), 0);
+    const totalPrice = (items || []).reduce((sum, it) => sum + (parseFloat(it.total) || 0), 0);
+
+    tableBody.push([
+      "", "", "", "", "",
+      { content: `TOTAL`, styles: { fontStyle: "bold", halign: "center" } },
+      { content: `${totalQty}`, styles: { fontStyle: "bold", halign: "center" } },
+      { content: `${totalPrice.toFixed(2)}`, styles: { fontStyle: "bold", halign: "center" } }
+    ]);
+
+    autoTable(doc, {
+      startY: 52,
+      margin: { left: 10, right: 10 },
+      tableWidth: 190,
+      head: [["SNO", "ITEM NAME", "CATEGORY", "MODEL", "BRAND", "TYPE", "QTY", "PRICE"]],
+      body: tableBody,
+      theme: 'grid',
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+        textColor: 0,
+        lineColor: [100, 100, 100],
+        lineWidth: 0.2,
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [255, 255, 255],
+        textColor: 0,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        0: { cellWidth: 12 },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 30 },
+        3: { cellWidth: 28 },
+        4: { cellWidth: 20 },
+        5: { cellWidth: 20 },
+        6: { cellWidth: 13 },
+        7: { cellWidth: 17 }
+      },
+      didDrawPage: function () {
+        const pageHeight = doc.internal.pageSize.height;
+        const pageWidth = doc.internal.pageSize.width;
+        doc.setFontSize(5);
+        doc.text(`Created By: ${form?.created_by || ''}`, 14, pageHeight - 10);
+
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear();
+        let hours = now.getHours();
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const formattedDateTime = `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+        doc.text(`Date: ${formattedDateTime}`, pageWidth - 60, pageHeight - 10);
+      }
+    });
+
+    // ===== SAVE FILE =====
+    const fileName = `# ${form?.eno || 'new'} - ${dateStr}.pdf`;
+    doc.save(fileName);
+
+  } catch (err) {
+    console.error('Failed to generate PDF:', err);
+  }
+};
+
 
   const handleCancel = () => {
     navigate('/procurement/purchase-order');
