@@ -92,12 +92,10 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
   const filterProjects = (list) => {
     const q = filterSearchProject.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((p) =>
-      String(p.name || p.project_name || p.siteName || p.id || '')
-        .toLowerCase()
-        .includes(q)
-    );
+    if (!q) return (list || []).slice(0, 10);
+    return (list || [])
+      .filter((p) => String(p.name || p.project_name || p.siteName || p.id || '').toLowerCase().includes(q))
+      .slice(0, 10);
   };
 
   // Vendor state
@@ -108,12 +106,10 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
   const filterVendors = (list) => {
     const q = filterSearchVendor.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter(v =>
-      String(v.name || v.vendor_name || v.id || '')
-        .toLowerCase()
-        .includes(q)
-    );
+    if (!q) return (list || []).slice(0, 10);
+    return (list || [])
+      .filter(v => String(v.name || v.vendor_name || v.id || '').toLowerCase().includes(q))
+      .slice(0, 10);
   };
 
   // Site incharge state
@@ -124,12 +120,10 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
   const filterIncharges = (list) => {
     const q = filterSearchIncharge.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((s) =>
-      String(s.siteEngineer || s.name || s.id || '')
-        .toLowerCase()
-        .includes(q)
-    );
+    if (!q) return (list || []).slice(0, 10);
+    return (list || [])
+      .filter((s) => String(s.siteEngineer || s.name || s.id || '').toLowerCase().includes(q))
+      .slice(0, 10);
   };
 
 

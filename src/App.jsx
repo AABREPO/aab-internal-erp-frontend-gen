@@ -21,6 +21,7 @@ import { Team } from "./pages/Team";
 import { Billing } from "./pages/Billing";
 import { Limits } from "./pages/Limits";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import Catalogs from "./pages/Catalogs";
 
 function App() {
   return (
@@ -61,6 +62,7 @@ function App() {
         <Route path="procurement/purchase-order/edit/:id" element={<PurchaseOrderForm />} />
         <Route path="procurement/purchase-order/view/:id" element={<PurchaseOrderForm />} />
         <Route path="procurement/quantum" element={<Quantum />} />
+        <Route path="procurement/catalogs" element={<Catalogs />} />
         
         {/* Documentation routes */}
         <Route path="documentation/introduction" element={<Introduction />} />

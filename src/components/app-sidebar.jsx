@@ -83,6 +83,10 @@ const data = {
           url: "/procurement/purchase-order",
         },
         {
+          title: "Catalogs",
+          url: "/procurement/catalogs",
+        },
+        {
           title: "Quantum",
           url: "/procurement/quantum",
         },

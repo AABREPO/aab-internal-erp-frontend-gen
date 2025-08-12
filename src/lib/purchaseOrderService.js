@@ -330,6 +330,19 @@ class PurchaseOrderService {
     }
   }
 
+  // Search helpers with optional limit (backend may ignore params; frontend can still slice)
+  async searchSiteIncharges(query, limit = 10) {
+    try {
+      const response = await coreApiClient.get('/site_incharge/getAll', {
+        params: { q: query, limit }
+      });
+      const data = Array.isArray(response.data) ? response.data : [];
+      return { success: true, data: data.slice(0, limit) };
+    } catch (error) {
+      return { success: false, error: 'Failed to search site incharges' };
+    }
+  }
+
   // Get all vendor names
   async getAllVendorNames() {
     try {
@@ -367,6 +380,67 @@ class PurchaseOrderService {
         success: false,
         error: error.message || 'Failed to fetch vendor names',
       };
+    }
+  }
+
+  async searchVendors(query, limit = 10) {
+    try {
+      const response = await metaApiClient.get(META_API_ENDPOINTS.VENDOR_NAMES, {
+        params: { q: query, limit }
+      });
+      const data = Array.isArray(response.data) ? response.data : [];
+      return { success: true, data: data.slice(0, limit) };
+    } catch (error) {
+      return { success: false, error: 'Failed to search vendors' };
+    }
+  }
+
+  async getAllProjects() {
+    try {
+      const response = await metaApiClient.get('/project_Names/getAll');
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: 'Failed to fetch projects' };
+    }
+  }
+
+  async searchProjects(query, limit = 10) {
+    try {
+      const response = await metaApiClient.get('/project_Names/getAll', {
+        params: { q: query, limit }
+      });
+      const data = Array.isArray(response.data) ? response.data : [];
+      return { success: true, data: data.slice(0, limit) };
+    } catch (error) {
+      return { success: false, error: 'Failed to search projects' };
+    }
+  }
+
+  // Generic CRUD helpers for catalogs
+  async createCatalogItem(resourcePath, payload) {
+    try {
+      const response = await coreApiClient.post(`${resourcePath}/create`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || 'Create failed' };
+    }
+  }
+
+  async updateCatalogItem(resourcePath, id, payload) {
+    try {
+      const response = await coreApiClient.put(`${resourcePath}/update/${id}`, payload);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || 'Update failed' };
+    }
+  }
+
+  async deleteCatalogItem(resourcePath, id) {
+    try {
+      const response = await coreApiClient.delete(`${resourcePath}/delete/${id}`);
+      return { success: true, data: response.data };
+    } catch (error) {
+      return { success: false, error: error.response?.data?.message || 'Delete failed' };
     }
   }
 

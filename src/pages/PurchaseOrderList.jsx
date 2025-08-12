@@ -10,6 +10,7 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu,
@@ -23,6 +24,7 @@ import { purchaseOrderService } from '@/lib/purchaseOrderService';
 
 export function PurchaseOrderList() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile?.() ?? false;
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -372,13 +374,13 @@ export function PurchaseOrderList() {
   return (
     <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="border-b p-6">
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="border-b p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold">Purchase Orders</h1>
             <p className="text-gray-600">Manage and view all purchase orders</p>
           </div>
-          <Button onClick={() => navigate('/procurement/purchase-order/create')}>
+          <Button onClick={() => navigate('/procurement/purchase-order/create')} className="w-full sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             New Purchase Order
           </Button>
@@ -406,18 +408,18 @@ export function PurchaseOrderList() {
         {/* Purchase Orders Table */}
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <CardTitle>
                 Purchase Orders ({filteredAndSortedPurchaseOrders.length})
               </CardTitle>
               
               {/* Filter and Search Controls */}
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 {/* Enhanced Filter */}
-                <div className="flex items-center space-x-2">
-                  <Filter className="h-4 w-4 text-gray-500" />
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-gray-500 hidden sm:block" />
                   <Select value={filterBy || 'all'} onValueChange={handleFilterFieldChange}>
-                    <SelectTrigger className="w-[120px]">
+                    <SelectTrigger className="w-full sm:w-[140px]">
                       <SelectValue placeholder="Filter by" />
                     </SelectTrigger>
                     <SelectContent>
@@ -433,9 +435,9 @@ export function PurchaseOrderList() {
 
                 {/* Filter Value Submenu */}
                 {filterBy && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center gap-2">
                     <Select value={filterValue} onValueChange={handleFilterValueChange}>
-                      <SelectTrigger className="w-[140px]">
+                      <SelectTrigger className="w-full sm:w-[160px]">
                         <SelectValue placeholder={`Select ${filterBy}`} />
                       </SelectTrigger>
                       <SelectContent>
@@ -464,14 +466,14 @@ export function PurchaseOrderList() {
                 )}
 
                 {/* Search */}
-                <div className="flex items-center space-x-2">
-                  <div className="relative">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-auto">
                     <Input
                       placeholder="Search... (Press Enter)"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       onKeyPress={handleSearchKeyPress}
-                      className="w-[200px]"
+                      className="w-full sm:w-[220px]"
                       disabled={isSearching}
                     />
                     {isSearching && (
@@ -513,6 +515,69 @@ export function PurchaseOrderList() {
               </div>
             ) : (
               <div className="border rounded-lg">
+                {/* Mobile cards */}
+                {isMobile && (
+                  <div className="space-y-3 p-2">
+                    {filteredAndSortedPurchaseOrders.map((po) => (
+                      <div key={po.id} className="rounded-md border p-3 bg-white">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <div className="text-sm text-gray-500">PO Number</div>
+                            <div className="text-base font-semibold">{po.eno}</div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>
+                                <Eye className="h-4 w-4 mr-2" /> View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(`/procurement/purchase-order/edit/${po.id}`)}>
+                                <Edit className="h-4 w-4 mr-2" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(po.id)}>
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-gray-600">
+                          <div>
+                            <div className="text-gray-500">Date</div>
+                            <div>{formatDate(po.date)}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Vendor</div>
+                            <div className="font-medium">{po.vendor_name || `Vendor ${po.vendor_id}`}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Client</div>
+                            <div className="font-medium">{po.client_name || `Client ${po.client_id}`}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Site Incharge</div>
+                            <div className="font-medium">{po.site_incharge_name || `Site Incharge ${po.site_incharge_id}`}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Mobile</div>
+                            <div>{po.site_incharge_mobile_number}</div>
+                          </div>
+                        </div>
+                        {po.po_notes?.po_notes && (
+                          <div className="mt-2 text-sm text-gray-700 line-clamp-2">{po.po_notes?.po_notes}</div>
+                        )}
+                        <div className="mt-3">
+                          <Button size="sm" variant="link" onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>Open</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* Desktop table */}
+                {!isMobile && (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -646,6 +711,7 @@ export function PurchaseOrderList() {
                     ))}
                   </TableBody>
                 </Table>
+                )}
               </div>
             )}
           </CardContent>
