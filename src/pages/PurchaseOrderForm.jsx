@@ -422,13 +422,16 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
         const result = response.data;
         console.log('Purchase order saved successfully:', result);
 
-        // Generate and download PDF using the current form values
-        await generatePurchaseOrderPDF({
-          form: formData,
-          items: selectedItems,
-        });
-
+        // Redirect to list immediately after successful create/edit
         navigate('/procurement/purchase-order');
+
+        // Generate and download PDF without blocking navigation
+        setTimeout(() => {
+          generatePurchaseOrderPDF({
+            form: formData,
+            items: selectedItems,
+          });
+        }, 0);
       } else {
         console.error('Failed to save purchase order:', response);
         setError('Failed to save purchase order. Please try again.');

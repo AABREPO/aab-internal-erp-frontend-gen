@@ -330,6 +330,22 @@ class PurchaseOrderService {
     }
   }
 
+  // Get all groups
+  async getAllGroups() {
+    try {
+      const response = await coreApiClient.get('/po_group/getAll');
+      return {
+        success: true,
+        data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Failed to fetch groups',
+      };
+    }
+  }
+
   // Search helpers with optional limit (backend may ignore params; frontend can still slice)
   async searchSiteIncharges(query, limit = 10) {
     try {

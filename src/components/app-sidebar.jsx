@@ -79,8 +79,12 @@ const data = {
           url: "/procurement/genesis",
         },
         {
-          title: "Purchase Orders",
+          title: "PO List",
           url: "/procurement/purchase-order",
+        },
+        {
+          title: "Create PO",
+          url: "/procurement/purchase-order/create",
         },
         {
           title: "Catalogs",
