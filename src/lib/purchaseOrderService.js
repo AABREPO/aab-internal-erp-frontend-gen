@@ -419,7 +419,7 @@ class PurchaseOrderService {
   // Generic CRUD helpers for catalogs
   async createCatalogItem(resourcePath, payload) {
     try {
-      const response = await coreApiClient.post(`${resourcePath}/create`, payload);
+      const response = await coreApiClient.post(`${resourcePath}/save`, payload);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.response?.data?.message || 'Create failed' };
@@ -428,7 +428,7 @@ class PurchaseOrderService {
 
   async updateCatalogItem(resourcePath, id, payload) {
     try {
-      const response = await coreApiClient.put(`${resourcePath}/update/${id}`, payload);
+      const response = await coreApiClient.put(`${resourcePath}/edit/${id}`, payload);
       return { success: true, data: response.data };
     } catch (error) {
       return { success: false, error: error.response?.data?.message || 'Update failed' };
