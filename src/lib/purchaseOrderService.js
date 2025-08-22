@@ -333,7 +333,7 @@ class PurchaseOrderService {
   // Get all groups
   async getAllGroups() {
     try {
-      const response = await coreApiClient.get('/po_group/getAll');
+      const response = await coreApiClient.get('/group_name/getAll');
       return {
         success: true,
         data: response.data,

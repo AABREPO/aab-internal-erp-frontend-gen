@@ -272,73 +272,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Model</label>
-                  <Select
-                    value={itemForm.model}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, model: value }))}
-                    disabled={loading.models}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={loading.models ? "Loading models..." : errors.models ? "Error loading models" : "Select model"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search model..."
-                          value={searchModel}
-                          onChange={(e) => setSearchModel(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filterModels(dropdownOptions.models).length > 0 ? (
-                        filterModels(dropdownOptions.models).slice(0, 10).map((model) => (
-                          <SelectItem key={model.id || model.model_id} value={model.model || model.id?.toString()}>
-                            {model.model || `Model ${model.id}`}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-models" disabled>No results</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Brand</label>
-                  <Select
-                    value={itemForm.brand}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select brand" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search brand..."
-                          value={searchBrand}
-                          onChange={(e) => setSearchBrand(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filterBrands(dropdownOptions.brands).slice(0, 10).map((brand) => (
-                        <SelectItem key={brand.id || brand.brand_id} value={brand.brand || brand.id?.toString()}>
-                          {brand.brand|| `Brand ${brand.id}`}
-                        </SelectItem>
-                      ))}
-                      {filterBrands(dropdownOptions.brands).length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
+                {/* Item */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Item</label>
                   <Select
@@ -381,17 +315,75 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Model */}
                 <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Quantity</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    value={itemForm.quantity}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
-                    className="h-8 text-xs border-gray-300 bg-white flex-1"
-                  />
+                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Model</label>
+                  <Select
+                    value={itemForm.model}
+                    onValueChange={(value) => setItemForm(prev => ({ ...prev, model: value }))}
+                    disabled={loading.models}
+                  >
+                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                      <SelectValue placeholder={loading.models ? "Loading models..." : errors.models ? "Error loading models" : "Select model"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search model..."
+                          value={searchModel}
+                          onChange={(e) => setSearchModel(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterModels(dropdownOptions.models).length > 0 ? (
+                        filterModels(dropdownOptions.models).slice(0, 10).map((model) => (
+                          <SelectItem key={model.id || model.model_id} value={model.model || model.id?.toString()}>
+                            {model.model || `Model ${model.id}`}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-models" disabled>No results</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                 </div>
+                {/* Brand */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Brand</label>
+                  <Select
+                    value={itemForm.brand}
+                    onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
+                  >
+                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                      <SelectValue placeholder="Select brand" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <div className="p-2 border-b">
+                        <Input
+                          placeholder="Search brand..."
+                          value={searchBrand}
+                          onChange={(e) => setSearchBrand(e.target.value)}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          autoFocus
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      {filterBrands(dropdownOptions.brands).slice(0, 10).map((brand) => (
+                        <SelectItem key={brand.id || brand.brand_id} value={brand.brand || brand.id?.toString()}>
+                          {brand.brand|| `Brand ${brand.id}`}
+                        </SelectItem>
+                      ))}
+                      {filterBrands(dropdownOptions.brands).length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                {/* Types */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Type</label>
                   <Select
@@ -424,39 +416,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Quantity */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Quantity</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    value={itemForm.quantity}
+                    onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    className="h-8 text-xs border-gray-300 bg-white flex-1"
+                  />
+                </div>
+                
               </div>
 
               
               
               {/* Preview (replaces items table) */}
-              <div className="mt-4">
-                {itemsList.length === 0 ? (
-                  <div className="text-xs text-gray-500">No items added yet</div>
-                ) : (
-                  <div className="space-y-2">
-                    {itemsList.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-start justify-between rounded-md border bg-white px-3 py-2"
-                      >
-                        <div className="text-xs">
-                          <div className="font-medium text-gray-900">{item.item || '-'}</div>
-                          <div className="text-gray-600">
-                            Qty: {item.quantity || 1} • {item.type || '-'} • {item.category || '-'}
-                          </div>
-                          <div className="text-gray-500">
-                            Model: {item.model || '-'} • Brand: {item.brand || '-'}
-                          </div>
-                        </div>
-                        <Trash2
-                          className="h-3 w-3 text-red-500 hover:text-red-700 cursor-pointer mt-1"
-                          onClick={() => handleDeleteItem(item.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              
             </div>
           )}
         </div>
