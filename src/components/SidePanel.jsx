@@ -298,12 +298,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterCategories(dropdownOptions.categories).slice(0, 10).map((category) => (
+                      {filteredCategories.map((category) => (
                         <SelectItem key={category.id || category.category_id} value={category.category || category.id?.toString()}>
                           {category.category || `Category ${category.id}`}
                         </SelectItem>
                       ))}
-                      {filterCategories(dropdownOptions.categories).length === 0 && (
+                      {filteredCategories.length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
