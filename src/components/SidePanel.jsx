@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,42 +41,61 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
   const [searchItem, setSearchItem] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
 
-  // Filter helpers
-  const filterModels = (list) => {
+  // Memoized filter helpers with lazy loading (10 items max)
+  const filteredModels = useMemo(() => {
     const q = searchModel.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((m) =>
-      String(m.name || m.model_name || m.id || '').toLowerCase().includes(q)
-    );
-  };
-  const filterBrands = (list) => {
+    const items = dropdownOptions.models || [];
+    if (!q) return items.slice(0, 10);
+    return items
+      .filter((m) =>
+        String(m.model || m.model_name || m.name || m.id || '').toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [dropdownOptions.models, searchModel]);
+  
+  const filteredBrands = useMemo(() => {
     const q = searchBrand.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((b) =>
-      String(b.name || b.brand_name || b.id || '').toLowerCase().includes(q)
-    );
-  };
-  const filterTypes = (list) => {
+    const items = dropdownOptions.brands || [];
+    if (!q) return items.slice(0, 10);
+    return items
+      .filter((b) =>
+        String(b.brand || b.brand_name || b.name || b.id || '').toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [dropdownOptions.brands, searchBrand]);
+  
+  const filteredTypes = useMemo(() => {
     const q = searchType.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((t) =>
-      String(t.name || t.type_name || t.id || '').toLowerCase().includes(q)
-    );
-  };
-  const filterItems = (list) => {
+    const items = dropdownOptions.types || [];
+    if (!q) return items.slice(0, 10);
+    return items
+      .filter((t) =>
+        String(t.typeColor || t.type_name || t.name || t.id || '').toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [dropdownOptions.types, searchType]);
+  
+  const filteredItems = useMemo(() => {
     const q = searchItem.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((i) =>
-      String(i.itemName || i.name || i.id || '').toLowerCase().includes(q)
-    );
-  };
-  const filterCategories = (list) => {
+    const items = dropdownOptions.itemNames || [];
+    if (!q) return items.slice(0, 10);
+    return items
+      .filter((i) =>
+        String(i.itemName || i.item_name || i.name || i.id || '').toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [dropdownOptions.itemNames, searchItem]);
+  
+  const filteredCategories = useMemo(() => {
     const q = searchCategory.trim().toLowerCase();
-    if (!q) return list || [];
-    return (list || []).filter((c) =>
-      String(c.name || c.category_name || c.id || '').toLowerCase().includes(q)
-    );
-  };
+    const items = dropdownOptions.categories || [];
+    if (!q) return items.slice(0, 10);
+    return items
+      .filter((c) =>
+        String(c.category || c.category_name || c.name || c.id || '').toLowerCase().includes(q)
+      )
+      .slice(0, 10);
+  }, [dropdownOptions.categories, searchCategory]);
 
   // Loading states
   const [loading, setLoading] = useState({
@@ -144,6 +163,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     const loadDropdownOptions = async () => {
       if (!expandedSections.items) return;
       
+      console.log('Loading dropdown options...');
+      
       // Set loading states
       setLoading({
         models: true,
@@ -163,6 +184,14 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
           purchaseOrderService.getAllCategories()
         ]);
 
+        console.log('API Results:', {
+          models: modelsResult,
+          brands: brandsResult,
+          types: typesResult,
+          itemNames: itemNamesResult,
+          categories: categoriesResult
+        });
+
         // Update dropdown options
         setDropdownOptions({
           models: modelsResult.success ? modelsResult.data : [],
@@ -179,6 +208,14 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
           types: typesResult.success ? null : typesResult.error,
           itemNames: itemNamesResult.success ? null : itemNamesResult.error,
           categories: categoriesResult.success ? null : categoriesResult.error
+        });
+
+        console.log('Dropdown options loaded:', {
+          modelsCount: modelsResult.success ? modelsResult.data.length : 0,
+          brandsCount: brandsResult.success ? brandsResult.data.length : 0,
+          typesCount: typesResult.success ? typesResult.data.length : 0,
+          itemNamesCount: itemNamesResult.success ? itemNamesResult.data.length : 0,
+          categoriesCount: categoriesResult.success ? categoriesResult.data.length : 0
         });
 
       } catch (error) {
@@ -261,12 +298,15 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterCategories(dropdownOptions.categories).slice(0, 10).map((category) => (
-                        <SelectItem key={category.id || category.category_id} value={category.category || category.id?.toString()}>
-                          {category.category || `Category ${category.id}`}
+                      {filteredCategories.map((category) => (
+                        <SelectItem 
+                          key={category.id || category.category_id} 
+                          value={category.category || category.category_name || `category_${category.id}`}
+                        >
+                          {category.category || category.category_name || `Category ${category.id}`}
                         </SelectItem>
                       ))}
-                      {filterCategories(dropdownOptions.categories).length === 0 && (
+                      {filteredCategories.length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
@@ -294,14 +334,16 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterModels(dropdownOptions.models).length > 0 ? (
-                        filterModels(dropdownOptions.models).slice(0, 10).map((model) => (
-                          <SelectItem key={model.id || model.model_id} value={model.model || model.id?.toString()}>
-                            {model.model || `Model ${model.id}`}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-models" disabled>No results</SelectItem>
+                      {filteredModels.map((model) => (
+                        <SelectItem 
+                          key={model.id || model.model_id} 
+                          value={model.model || model.model_name || `model_${model.id}`}
+                        >
+                          {model.model || model.model_name || `Model ${model.id}`}
+                        </SelectItem>
+                      ))}
+                      {filteredModels.length === 0 && (
+                        <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
                   </Select>
@@ -327,12 +369,15 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterBrands(dropdownOptions.brands).slice(0, 10).map((brand) => (
-                        <SelectItem key={brand.id || brand.brand_id} value={brand.brand || brand.id?.toString()}>
-                          {brand.brand|| `Brand ${brand.id}`}
+                      {filteredBrands.map((brand) => (
+                        <SelectItem 
+                          key={brand.id || brand.brand_id} 
+                          value={brand.brand || brand.brand_name || `brand_${brand.id}`}
+                        >
+                          {brand.brand || brand.brand_name || `Brand ${brand.id}`}
                         </SelectItem>
                       ))}
-                      {filterBrands(dropdownOptions.brands).length === 0 && (
+                      {filteredBrands.length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
@@ -367,15 +412,15 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterItems(dropdownOptions.itemNames).slice(0, 10).map((item) => (
+                      {filteredItems.map((item) => (
                         <SelectItem 
                           key={item.id || item.item_id} 
                           value={(item.id)?.toString()}
                         >
-                          {item.itemName}
+                          {item.itemName || item.item_name || `Item ${item.id}`}
                         </SelectItem>
                       ))}
-                      {filterItems(dropdownOptions.itemNames).length === 0 && (
+                      {filteredItems.length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
@@ -413,12 +458,15 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterTypes(dropdownOptions.types).slice(0, 10).map((type) => (
-                        <SelectItem key={type.id || type.type_id} value={type.typeColor|| type.id?.toString()}>
-                          {type.typeColor || `Type ${type.id}`}
+                      {filteredTypes.map((type) => (
+                        <SelectItem 
+                          key={type.id || type.type_id} 
+                          value={type.typeColor || type.type_name || `type_${type.id}`}
+                        >
+                          {type.typeColor || type.type_name || `Type ${type.id}`}
                         </SelectItem>
                       ))}
-                      {filterTypes(dropdownOptions.types).length === 0 && (
+                      {filteredTypes.length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
