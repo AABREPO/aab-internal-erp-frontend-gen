@@ -298,15 +298,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filteredCategories.map((category) => (
-                        <SelectItem 
-                          key={category.id || category.category_id} 
-                          value={category.category || category.category_name || `category_${category.id}`}
-                        >
-                          {category.category || category.category_name || `Category ${category.id}`}
+                      {filterCategories(dropdownOptions.categories).slice(0, 10).map((category) => (
+                        <SelectItem key={category.id || category.category_id} value={category.category || category.id?.toString()}>
+                          {category.category || `Category ${category.id}`}
                         </SelectItem>
                       ))}
-                      {filteredCategories.length === 0 && (
+                      {filterCategories(dropdownOptions.categories).length === 0 && (
                         <div className="p-2 text-xs text-gray-500">No results</div>
                       )}
                     </SelectContent>
@@ -348,6 +345,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Brand */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Brand</label>
                   <Select
@@ -472,39 +470,25 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     </SelectContent>
                   </Select>
                 </div>
+                {/* Quantity */}
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Quantity</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="1"
+                    value={itemForm.quantity}
+                    onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    className="h-8 text-xs border-gray-300 bg-white flex-1"
+                  />
+                </div>
+                
               </div>
 
               
               
               {/* Preview (replaces items table) */}
-              <div className="mt-4">
-                {itemsList.length === 0 ? (
-                  <div className="text-xs text-gray-500">No items added yet</div>
-                ) : (
-                  <div className="space-y-2">
-                    {itemsList.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-start justify-between rounded-md border bg-white px-3 py-2"
-                      >
-                        <div className="text-xs">
-                          <div className="font-medium text-gray-900">{item.item || '-'}</div>
-                          <div className="text-gray-600">
-                            Qty: {item.quantity || 1} • {item.type || '-'} • {item.category || '-'}
-                          </div>
-                          <div className="text-gray-500">
-                            Model: {item.model || '-'} • Brand: {item.brand || '-'}
-                          </div>
-                        </div>
-                        <Trash2
-                          className="h-3 w-3 text-red-500 hover:text-red-700 cursor-pointer mt-1"
-                          onClick={() => handleDeleteItem(item.id)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              
             </div>
           )}
         </div>

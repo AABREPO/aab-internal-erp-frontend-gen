@@ -454,8 +454,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                   />
-                </div>
-                
+                </div>                
                 {/* Custom Fields */}
                 {customFields.map((field) => (
                   <div key={field.key} className="space-y-2">
@@ -471,8 +470,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                       }))}
                     />
                   </div>
-                ))}
-                
+                ))}                
                 {/* Advanced fields for Items */}
                 {hasAdvancedFields && (
                   <>
@@ -495,7 +493,6 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                         </SelectContent>
                       </Select>
                     </div>
-
                     {/* Group Name - Single Select */}
                     <div className="space-y-2">
                       <Label htmlFor="group">Group Name</Label>
@@ -515,12 +512,10 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                         </SelectContent>
                       </Select>
                     </div>
-
                     {/* Combined Models, Brands, Types Table */}
                     <CombinedRowsTable />
                   </>
                 )}
-
                 {/* Category field - exempt Categories, Site In-charge, Groups, and Items (Items has advanced fields) */}
                 {!['Categories', 'Site In-charge', 'Groups', 'Items'].includes(title) && (
                   <div className="space-y-2">
@@ -556,7 +551,6 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
         </div>
       </CardHeader>
       <CardContent>
-
         {loading ? (
           <div className="text-sm text-gray-500">Loading...</div>
         ) : error ? (
@@ -643,7 +637,6 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     </Card>
   );
 }
-
 export default function Catalogs() {
   return (
     <div className="flex-1 p-4">
@@ -652,7 +645,7 @@ export default function Catalogs() {
           <TabsTrigger value="items">Items</TabsTrigger>
           <TabsTrigger value="models">Models</TabsTrigger>
           <TabsTrigger value="brands">Brands</TabsTrigger>
-          <TabsTrigger value="types">Order Types</TabsTrigger>
+          <TabsTrigger value="types">Types</TabsTrigger>
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="site-incharge">Site In-charge</TabsTrigger>
           <TabsTrigger value="groups">Groups</TabsTrigger>
@@ -676,7 +669,7 @@ export default function Catalogs() {
             <CatalogTab title="Brands" apiFn={() => purchaseOrderService.getAllBrands()} resourcePath={'/po_brand'} nameKeyCandidates={["brand", "brand_name", "name"]} idKeyCandidates={["id","brand_id"]} />
           </TabsContent>
           <TabsContent value="types">
-            <CatalogTab title="Order Types" apiFn={() => purchaseOrderService.getAllTypes()} resourcePath={'/po_type'} nameKeyCandidates={["typeColor", "type_name", "name"]} idKeyCandidates={["id","type_id"]} />
+            <CatalogTab title="Types" apiFn={() => purchaseOrderService.getAllTypes()} resourcePath={'/po_type'} nameKeyCandidates={["typeColor", "type_name", "name"]} idKeyCandidates={["id","type_id"]} />
           </TabsContent>
           <TabsContent value="categories">
             <CatalogTab title="Categories" apiFn={() => purchaseOrderService.getAllCategories()} resourcePath={'/po_category'} nameKeyCandidates={["category", "category_name", "name"]} idKeyCandidates={["id","category_id"]} />
@@ -712,4 +705,3 @@ export default function Catalogs() {
     </div>
   );
 }
-
