@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -92,6 +92,58 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
   const [projectsError, setProjectsError] = useState(null);
   const [filterSearchProject, setFilterSearchProject] = useState('');
 
+  // Vendor state
+  const [vendors, setVendors] = useState([]);
+  const [loadingVendors, setLoadingVendors] = useState(false);
+  const [vendorsError, setVendorsError] = useState(null);
+  const [filterSearchVendor, setFilterSearchVendor] = useState('');
+
+  // Keyboard navigation state for selects
+  const [selectedIndices, setSelectedIndices] = useState({
+    vendor: -1,
+    client: -1,
+    incharge: -1
+  });
+
+  // Keyboard navigation handlers
+  const handleKeyDown = (selectType, e, items, onSelect) => {
+    const currentIndex = selectedIndices[selectType];
+    const maxIndex = items.length - 1;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        const nextIndex = currentIndex < maxIndex ? currentIndex + 1 : 0;
+        setSelectedIndices(prev => ({ ...prev, [selectType]: nextIndex }));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : maxIndex;
+        setSelectedIndices(prev => ({ ...prev, [selectType]: prevIndex }));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (currentIndex >= 0 && currentIndex < items.length) {
+          const selectedItem = items[currentIndex];
+          const value = (selectedItem.id || selectedItem.vendor_id || selectedItem.project_id)?.toString();
+          onSelect(value);
+          // Reset selected index
+          setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+        break;
+    }
+  };
+
+  // Reset selected index when search changes
+  const handleSearchChange = (setter, value, selectType) => {
+    setter(value);
+    setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+  };
+
   const filterProjects = (list) => {
     const q = filterSearchProject.trim().toLowerCase();
     if (!q) return (list || []).slice(0, 10);
@@ -99,12 +151,6 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       .filter((p) => String(p.name || p.project_name || p.siteName || p.id || '').toLowerCase().includes(q))
       .slice(0, 10);
   };
-
-  // Vendor state
-  const [vendors, setVendors] = useState([]);
-  const [loadingVendors, setLoadingVendors] = useState(false);
-  const [vendorsError, setVendorsError] = useState(null);
-  const [filterSearchVendor, setFilterSearchVendor] = useState('');
 
   const filterVendors = (list) => {
     const q = filterSearchVendor.trim().toLowerCase();
@@ -893,17 +939,32 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                         <Input
                           placeholder="Search vendor..."
                           value={filterSearchVendor}
-                          onChange={(e) => setFilterSearchVendor(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => handleSearchChange(setFilterSearchVendor, e.target.value, 'vendor')}
+                          onKeyDown={(e) => handleKeyDown('vendor', e, filterVendors(vendors), (value) => {
+                            const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
+                            const vendorName = selectedVendor?.vendorName || '';
+                            handleInputChange('vendor_id', value);
+                            handleInputChange('vendor_name', vendorName);
+                            if (isCreateMode) {
+                              const newPONumber = generatePONumber(value, vendorName);
+                              handleInputChange('eno', newPONumber);
+                              console.log('Generated PO number for vendor:', { 
+                                vendorId: value, 
+                                vendorName, 
+                                poNumber: newPONumber 
+                              });
+                            }
+                          })}
                           autoFocus
                           className="h-8 text-xs"
                         />
                       </div>
-                      {(filterVendors(vendors).slice(0, 10)).map((vendor) => (
+                      {(filterVendors(vendors).slice(0, 10)).map((vendor, index) => (
                         <SelectItem 
                           key={vendor.id || vendor.vendor_id} 
                           value={(vendor.id || vendor.vendor_id)?.toString()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className={`${selectedIndices.vendor === index ? 'bg-blue-100 border-blue-500' : ''}`}
                         >
                           {vendor.vendorName || `Vendor ${vendor.id || vendor.vendor_id}`}
                         </SelectItem>
@@ -953,16 +1014,24 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                         <Input
                           placeholder="Search project..."
                           value={filterSearchProject}
-                          onChange={(e) => setFilterSearchProject(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => handleSearchChange(setFilterSearchProject, e.target.value, 'client')}
+                          onKeyDown={(e) => handleKeyDown('client', e, filterProjects(projects), (value) => {
+                            const selectedProject = projects.find(p => (p.id || p.project_id)?.toString() === value);
+                            handleInputChange('client_id', value);
+                            handleInputChange('client_name', selectedProject?.name || selectedProject?.project_name || '');
+                          })}
                           autoFocus
                           className="h-8 text-xs"
                         />
                       </div>
                       {filterProjects(projects).length > 0 ? (
-                        filterProjects(projects).slice(0, 10).map((project) => (
-                          <SelectItem key={project.id || project.project_id} value={(project.id || project.project_id)?.toString()}>
+                        filterProjects(projects).slice(0, 10).map((project, index) => (
+                          <SelectItem 
+                            key={project.id || project.project_id} 
+                            value={(project.id || project.project_id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.client === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
                             {project.name || project.project_name || project.siteName}
                           </SelectItem>
                         ))
@@ -1015,15 +1084,26 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                         <Input
                           placeholder="Search site engineer..."
                           value={filterSearchIncharge}
-                          onChange={(e) => setFilterSearchIncharge(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => handleSearchChange(setFilterSearchIncharge, e.target.value, 'incharge')}
+                          onKeyDown={(e) => handleKeyDown('incharge', e, filterIncharges(siteIncharges), (value) => {
+                            const selected = siteIncharges.find(s => (s.id)?.toString() === value);
+                            handleInputChange('site_incharge_id', value);
+                            handleInputChange('siteEngineer', selected?.siteEngineer || '');
+                            if (selected?.mobileNumber) {
+                              handleInputChange('site_incharge_mobile_number', selected.mobileNumber);
+                            }
+                          })}
                           autoFocus
                           className="h-8 text-xs"
                         />
                       </div>
-                      {filterIncharges(siteIncharges).slice(0, 10).map((s) => (
-                        <SelectItem key={s.id } value={(s.id)?.toString()}>
+                      {filterIncharges(siteIncharges).slice(0, 10).map((s, index) => (
+                        <SelectItem 
+                          key={s.id} 
+                          value={(s.id)?.toString()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          className={`${selectedIndices.incharge === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                        >
                           {s.siteEngineer}
                         </SelectItem>
                       ))}

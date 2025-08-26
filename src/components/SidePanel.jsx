@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,6 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     items: true
   });
 
-
-
   const [itemForm, setItemForm] = useState({
     selectedItemId: '',
     model: '',
@@ -22,7 +20,6 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     quantity: '1',
     type: '',
     category: '',
-    
   });
 
   // Dropdown options state
@@ -40,6 +37,63 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
   const [searchType, setSearchType] = useState('');
   const [searchItem, setSearchItem] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
+
+  // Keyboard navigation state for each select
+  const [selectedIndices, setSelectedIndices] = useState({
+    category: -1,
+    model: -1,
+    brand: -1,
+    item: -1,
+    type: -1
+  });
+
+  // Refs for select content containers
+  const selectRefs = {
+    category: useRef(null),
+    model: useRef(null),
+    brand: useRef(null),
+    item: useRef(null),
+    type: useRef(null)
+  };
+
+  // Keyboard navigation handlers
+  const handleKeyDown = (selectType, e, items, onSelect) => {
+    const currentIndex = selectedIndices[selectType];
+    const maxIndex = items.length - 1;
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        const nextIndex = currentIndex < maxIndex ? currentIndex + 1 : 0;
+        setSelectedIndices(prev => ({ ...prev, [selectType]: nextIndex }));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : maxIndex;
+        setSelectedIndices(prev => ({ ...prev, [selectType]: prevIndex }));
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (currentIndex >= 0 && currentIndex < items.length) {
+          const selectedItem = items[currentIndex];
+          const value = (selectedItem.id || selectedItem.category_id || selectedItem.model_id || selectedItem.brand_id || selectedItem.type_id || selectedItem.item_id)?.toString();
+          onSelect(value);
+          // Reset selected index
+          setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+        }
+        break;
+      case 'Escape':
+        e.preventDefault();
+        setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+        break;
+    }
+  };
+
+  // Reset selected index when search changes
+  const handleSearchChange = (setter, value, selectType) => {
+    setter(value);
+    setSelectedIndices(prev => ({ ...prev, [selectType]: -1 }));
+  };
 
   // Memoized filter helpers with lazy loading (10 items max) and category-based filtering
   const filteredModels = useMemo(() => {
@@ -161,8 +215,6 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     }));
   };
 
-
-
   const handleAddItem = () => {
     if (itemForm.selectedItemId) {
       // Find the selected objects to get both IDs and display names
@@ -218,8 +270,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     }
   };
 
-  // Handle Enter key press
-  const handleKeyDown = (e) => {
+  // Handle Enter key press for quantity input
+  const handleQuantityKeyDown = (e) => {
     if (e.key === 'Enter' && itemForm.selectedItemId) {
       e.preventDefault();
       handleAddItem();
@@ -228,6 +280,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
 
   // Handle category change - reset other fields when category changes
   const handleCategoryChange = (value) => {
+    console.log('Category changed to:', value);
+    
     setItemForm(prev => ({ 
       ...prev, 
       category: value,
@@ -244,6 +298,33 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     setSearchBrand('');
     setSearchType('');
     setSearchItem('');
+    
+    // Reset selected indices for keyboard navigation
+    setSelectedIndices(prev => ({
+      ...prev,
+      model: -1,
+      brand: -1,
+      type: -1,
+      item: -1
+    }));
+    
+    // Log available filtered options for debugging
+    if (value) {
+      const selectedCategory = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === value
+      );
+      console.log('Selected category:', selectedCategory);
+      
+      // Log filtered counts for debugging
+      setTimeout(() => {
+        console.log('Filtered options after category change:', {
+          models: filteredModels.length,
+          brands: filteredBrands.length,
+          types: filteredTypes.length,
+          items: filteredItems.length
+        });
+      }, 100);
+    }
   };
 
   // Delete functions
@@ -335,10 +416,6 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     loadDropdownOptions();
   }, [expandedSections.items]);
 
-
-
-
-
   return (
     <div className="w-96 bg-gray-50 border-l border-gray-200 flex-shrink-0 overflow-y-auto h-screen flex flex-col">
       {/* Header */}
@@ -369,159 +446,218 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
             <div className="pb-3 pl-5 space-y-4">
               {/* Main Item Details Section */}
               <div className="space-y-3">
-                {/* Category (moved from Other Details to top of Items) */}
+                {/* Category */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Category</label>
-                  <Select
-                    value={itemForm.category}
-                    onValueChange={handleCategoryChange}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search category..."
-                          value={searchCategory}
-                          onChange={(e) => setSearchCategory(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filteredCategories.map((category) => (
-                        <SelectItem key={category.id || category.category_id} value={(category.id || category.category_id)?.toString()}>
-                          {category.category || category.category_name || `Category ${category.id}`}
-                        </SelectItem>
-                      ))}
-                      {filteredCategories.length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 relative">
+                    <Select
+                      value={itemForm.category}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search category... (↑↓ to navigate, Enter to select)"
+                            value={searchCategory}
+                            onChange={(e) => handleSearchChange(setSearchCategory, e.target.value, 'category')}
+                            onKeyDown={(e) => handleKeyDown('category', e, filteredCategories, handleCategoryChange)}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        {filteredCategories.map((category, index) => (
+                          <SelectItem 
+                            key={category.id || category.category_id} 
+                            value={(category.id || category.category_id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.category === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
+                            {category.category || category.category_name || `Category ${category.id}`}
+                          </SelectItem>
+                        ))}
+                        {filteredCategories.length === 0 && (
+                          <div className="p-2 text-xs text-gray-500">No results</div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {itemForm.category && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleCategoryChange('')}
+                        className="absolute right-1 top-0 h-6 w-6 p-0 text-xs"
+                        title="Clear category filter"
+                      >
+                        ×
+                      </Button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Model */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Model</label>
-                  <Select
-                    value={itemForm.model}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, model: value }))}
-                    disabled={loading.models}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={
-                        loading.models ? "Loading models..." : 
-                        errors.models ? "Error loading models" : 
-                        itemForm.category ? "Select model (filtered by category)" : 
-                        "Select model"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search model..."
-                          value={searchModel}
-                          onChange={(e) => setSearchModel(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filteredModels.map((model) => (
-                        <SelectItem 
-                          key={model.id || model.model_id} 
-                          value={(model.id || model.model_id)?.toString()}
-                        >
-                          {model.model || model.model_name || `Model ${model.id}`}
-                        </SelectItem>
-                      ))}
-                      {filteredModels.length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 relative">
+                    <Select
+                      value={itemForm.model}
+                      onValueChange={(value) => setItemForm(prev => ({ ...prev, model: value }))}
+                      disabled={loading.models}
+                    >
+                      <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                        <SelectValue placeholder={
+                          loading.models ? "Loading models..." : 
+                          errors.models ? "Error loading models" : 
+                          itemForm.category ? `Select model (${filteredModels.length} available)` : 
+                          "Select model"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search model... (↑↓ to navigate, Enter to select)"
+                            value={searchModel}
+                            onChange={(e) => handleSearchChange(setSearchModel, e.target.value, 'model')}
+                            onKeyDown={(e) => handleKeyDown('model', e, filteredModels, (value) => setItemForm(prev => ({ ...prev, model: value })))}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        {filteredModels.map((model, index) => (
+                          <SelectItem 
+                            key={model.id || model.model_id} 
+                            value={(model.id || model.model_id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.model === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
+                            {model.model || model.model_name || `Model ${model.id}`}
+                          </SelectItem>
+                        ))}
+                        {filteredModels.length === 0 && (
+                          <div className="p-2 text-xs text-gray-500">
+                            {itemForm.category ? "No models found for selected category" : "No results"}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {itemForm.category && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
+                    )}
+                  </div>
                 </div>
+
                 {/* Brand */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Brand</label>
-                  <Select
-                    value={itemForm.brand}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={itemForm.category ? "Select brand (filtered by category)" : "Select brand"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search brand..."
-                          value={searchBrand}
-                          onChange={(e) => setSearchBrand(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filteredBrands.map((brand) => (
-                        <SelectItem 
-                          key={brand.id || brand.brand_id} 
-                          value={(brand.id || brand.brand_id)?.toString()}
-                        >
-                          {brand.brand || brand.brand_name || `Brand ${brand.id}`}
-                        </SelectItem>
-                      ))}
-                      {filteredBrands.length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 relative">
+                    <Select
+                      value={itemForm.brand}
+                      onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
+                    >
+                      <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                        <SelectValue placeholder={itemForm.category ? `Select brand (${filteredBrands.length} available)` : "Select brand"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search brand... (↑↓ to navigate, Enter to select)"
+                            value={searchBrand}
+                            onChange={(e) => handleSearchChange(setSearchBrand, e.target.value, 'brand')}
+                            onKeyDown={(e) => handleKeyDown('brand', e, filteredBrands, (value) => setItemForm(prev => ({ ...prev, brand: value })))}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        {filteredBrands.map((brand, index) => (
+                          <SelectItem 
+                            key={brand.id || brand.brand_id} 
+                            value={(brand.id || brand.brand_id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.brand === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
+                            {brand.brand || brand.brand_name || `Brand ${brand.id}`}
+                          </SelectItem>
+                        ))}
+                        {filteredBrands.length === 0 && (
+                          <div className="p-2 text-xs text-gray-500">
+                            {itemForm.category ? "No brands found for selected category" : "No results"}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {itemForm.category && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
+                    )}
+                  </div>
                 </div>
                 
+                {/* Item */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Item</label>
-                  <Select
-                    value={itemForm.selectedItemId}
-                    onValueChange={(value) => {
-                      const selected = dropdownOptions.itemNames.find((i) => ((i.id)?.toString()) === value);
-                      setItemForm(prev => ({ 
-                        ...prev, 
-                        selectedItemId: value,
-                        item: selected?.itemName || ''
-                      }));
-                    }}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={itemForm.category ? "Select item (filtered by category)" : "Select item"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search item..."
-                          value={searchItem}
-                          onChange={(e) => setSearchItem(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filteredItems.map((item) => (
-                        <SelectItem 
-                          key={item.id || item.item_id} 
-                          value={(item.id)?.toString()}
-                        >
-                          {item.itemName || item.item_name || `Item ${item.id}`}
-                        </SelectItem>
-                      ))}
-                      {filteredItems.length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 relative">
+                    <Select
+                      value={itemForm.selectedItemId}
+                      onValueChange={(value) => {
+                        const selected = dropdownOptions.itemNames.find((i) => ((i.id)?.toString()) === value);
+                        setItemForm(prev => ({ 
+                          ...prev, 
+                          selectedItemId: value,
+                          item: selected?.itemName || ''
+                        }));
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                        <SelectValue placeholder={itemForm.category ? `Select item (${filteredItems.length} available)` : "Select item"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search item... (↑↓ to navigate, Enter to select)"
+                            value={searchItem}
+                            onChange={(e) => handleSearchChange(setSearchItem, e.target.value, 'item')}
+                            onKeyDown={(e) => handleKeyDown('item', e, filteredItems, (value) => {
+                              const selected = dropdownOptions.itemNames.find((i) => ((i.id)?.toString()) === value);
+                              setItemForm(prev => ({ 
+                                ...prev, 
+                                selectedItemId: value,
+                                item: selected?.itemName || ''
+                              }));
+                            })}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        {filteredItems.map((item, index) => (
+                          <SelectItem 
+                            key={item.id || item.item_id} 
+                            value={(item.id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.item === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
+                            {item.itemName || item.item_name || `Item ${item.id}`}
+                          </SelectItem>
+                        ))}
+                        {filteredItems.length === 0 && (
+                          <div className="p-2 text-xs text-gray-500">
+                            {itemForm.category ? "No items found for selected category" : "No results"}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {itemForm.category && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Quantity */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Quantity</label>
                   <Input
@@ -530,52 +666,57 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     placeholder="1"
                     value={itemForm.quantity}
                     onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleQuantityKeyDown}
                     className="h-8 text-xs border-gray-300 bg-white flex-1"
                   />
                 </div>
+
+                {/* Type */}
                 <div className="flex items-center space-x-2">
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Type</label>
-                  <Select
-                    value={itemForm.type}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, type: value }))}
-                  >
-                    <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={itemForm.category ? "Select type (filtered by category)" : "Select type"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="p-2 border-b">
-                        <Input
-                          placeholder="Search type..."
-                          value={searchType}
-                          onChange={(e) => setSearchType(e.target.value)}
-                          onKeyDown={(e) => e.stopPropagation()}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          autoFocus
-                          className="h-8 text-xs"
-                        />
-                      </div>
-                      {filteredTypes.map((type) => (
-                        <SelectItem 
-                          key={type.id || type.type_id} 
-                          value={(type.id || type.type_id)?.toString()}
-                        >
-                          {type.typeColor || type.type_name || `Type ${type.id}`}
-                        </SelectItem>
-                      ))}
-                      {filteredTypes.length === 0 && (
-                        <div className="p-2 text-xs text-gray-500">No results</div>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <div className="flex-1 relative">
+                    <Select
+                      value={itemForm.type}
+                      onValueChange={(value) => setItemForm(prev => ({ ...prev, type: value }))}
+                    >
+                      <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
+                        <SelectValue placeholder={itemForm.category ? `Select type (${filteredTypes.length} available)` : "Select type"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <div className="p-2 border-b">
+                          <Input
+                            placeholder="Search type... (↑↓ to navigate, Enter to select)"
+                            value={searchType}
+                            onChange={(e) => handleSearchChange(setSearchType, e.target.value, 'type')}
+                            onKeyDown={(e) => handleKeyDown('type', e, filteredTypes, (value) => setItemForm(prev => ({ ...prev, type: value })))}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            autoFocus
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        {filteredTypes.map((type, index) => (
+                          <SelectItem 
+                            key={type.id || type.type_id} 
+                            value={(type.id || type.type_id)?.toString()}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            className={`${selectedIndices.type === index ? 'bg-blue-100 border-blue-500' : ''}`}
+                          >
+                            {type.typeColor || type.type_name || `Type ${type.id}`}
+                          </SelectItem>
+                        ))}
+                        {filteredTypes.length === 0 && (
+                          <div className="p-2 text-xs text-gray-500">
+                            {itemForm.category ? "No types found for selected category" : "No results"}
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {itemForm.category && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
+                    )}
+                  </div>
                 </div>
-                
               </div>
-
-              
-              
-              {/* Preview (replaces items table) */}
-              
             </div>
           )}
         </div>
