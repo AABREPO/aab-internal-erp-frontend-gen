@@ -98,6 +98,33 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
   const [vendorsError, setVendorsError] = useState(null);
   const [filterSearchVendor, setFilterSearchVendor] = useState('');
 
+  // Dropdown options state for purchase table editing
+  const [dropdownOptions, setDropdownOptions] = useState({
+    categories: [],
+    models: [],
+    brands: [],
+    types: [],
+    itemNames: []
+  });
+
+  // Loading states for dropdowns
+  const [loadingDropdowns, setLoadingDropdowns] = useState({
+    categories: false,
+    models: false,
+    brands: false,
+    types: false,
+    itemNames: false
+  });
+
+  // Search states for inline editing
+  const [inlineSearchStates, setInlineSearchStates] = useState({
+    category: '',
+    item: '',
+    model: '',
+    brand: '',
+    type: ''
+  });
+
   // Keyboard navigation state for selects
   const [selectedIndices, setSelectedIndices] = useState({
     vendor: -1,
@@ -782,6 +809,173 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     navigate('/procurement/purchase-order');
   };
 
+  // Load dropdown options for purchase table editing
+  const loadDropdownOptions = async () => {
+    setLoadingDropdowns({
+      categories: true,
+      models: true,
+      brands: true,
+      types: true,
+      itemNames: true
+    });
+
+    try {
+      const [categoriesResult, modelsResult, brandsResult, typesResult, itemNamesResult] = await Promise.all([
+        purchaseOrderService.getAllCategories(),
+        purchaseOrderService.getAllModels(),
+        purchaseOrderService.getAllBrands(),
+        purchaseOrderService.getAllTypes(),
+        purchaseOrderService.getAllItemNames()
+      ]);
+
+      setDropdownOptions({
+        categories: categoriesResult.success ? categoriesResult.data : [],
+        models: modelsResult.success ? modelsResult.data : [],
+        brands: brandsResult.success ? brandsResult.data : [],
+        types: typesResult.success ? typesResult.data : [],
+        itemNames: itemNamesResult.success ? itemNamesResult.data : []
+      });
+
+      console.log('Dropdown options loaded for purchase table editing:', {
+        categories: categoriesResult.success ? categoriesResult.data.length : 0,
+        models: modelsResult.success ? modelsResult.data.length : 0,
+        brands: brandsResult.success ? brandsResult.data.length : 0,
+        types: typesResult.success ? typesResult.data.length : 0,
+        itemNames: itemNamesResult.success ? itemNamesResult.data.length : 0
+      });
+
+    } catch (error) {
+      console.error('Failed to load dropdown options:', error);
+    } finally {
+      setLoadingDropdowns({
+        categories: false,
+        models: false,
+        brands: false,
+        types: false,
+        itemNames: false
+      });
+    }
+  };
+
+  // Load dropdown data when component mounts
+  useEffect(() => {
+    loadDropdownOptions();
+  }, []);
+
+  // Filter functions for inline editing
+  const getFilteredItems = (searchTerm, categoryId) => {
+    let items = dropdownOptions.itemNames || [];
+    
+    // Filter by category if provided
+    if (categoryId) {
+      items = items.filter(item => {
+        const itemCategory = item.category || item.category_name || item.categoryName;
+        const category = dropdownOptions.categories.find(c => 
+          (c.id || c.category_id)?.toString() === categoryId?.toString()
+        );
+        const categoryName = category?.category || category?.category_name;
+        return itemCategory?.toString() === categoryName?.toString();
+      });
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      items = items.filter(item =>
+        String(item.itemName || item.item_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return items.slice(0, 10);
+  };
+
+  const getFilteredModels = (searchTerm, categoryId) => {
+    let items = dropdownOptions.models || [];
+    
+    // Filter by category if provided
+    if (categoryId) {
+      items = items.filter(item => {
+        const itemCategory = item.category || item.category_name || item.categoryName;
+        const category = dropdownOptions.categories.find(c => 
+          (c.id || c.category_id)?.toString() === categoryId?.toString()
+        );
+        const categoryName = category?.category || category?.category_name;
+        return itemCategory?.toString() === categoryName?.toString();
+      });
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      items = items.filter(item =>
+        String(item.model || item.model_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return items.slice(0, 10);
+  };
+
+  const getFilteredBrands = (searchTerm, categoryId) => {
+    let items = dropdownOptions.brands || [];
+    
+    // Filter by category if provided
+    if (categoryId) {
+      items = items.filter(item => {
+        const itemCategory = item.category || item.category_name || item.categoryName;
+        const category = dropdownOptions.categories.find(c => 
+          (c.id || c.category_id)?.toString() === categoryId?.toString()
+        );
+        const categoryName = category?.category || category?.category_name;
+        return itemCategory?.toString() === categoryName?.toString();
+      });
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      items = items.filter(item =>
+        String(item.brand || item.brand_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return items.slice(0, 10);
+  };
+
+  const getFilteredTypes = (searchTerm, categoryId) => {
+    let items = dropdownOptions.types || [];
+    
+    // Filter by category if provided
+    if (categoryId) {
+      items = items.filter(item => {
+        const itemCategory = item.category || item.category_name || item.categoryName;
+        const category = dropdownOptions.categories.find(c => 
+          (c.id || c.category_id)?.toString() === categoryId?.toString()
+        );
+        const categoryName = category?.category || category?.category_name;
+        return itemCategory?.toString() === categoryName?.toString();
+      });
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      items = items.filter(item =>
+        String(item.typeColor || item.type_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return items.slice(0, 10);
+  };
+
+  const getFilteredCategories = (searchTerm) => {
+    let items = dropdownOptions.categories || [];
+    
+    // Filter by search term
+    if (searchTerm) {
+      items = items.filter(item =>
+        String(item.category || item.category_name || item.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return items.slice(0, 10);
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -1172,6 +1366,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>Category</TableHead>
                         <TableHead>Item</TableHead>
                         <TableHead>Model</TableHead>
                         <TableHead>Brand</TableHead>
@@ -1179,11 +1374,13 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                         <TableHead>Unit Price</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Total</TableHead>
+                        {!isViewMode && <TableHead>Actions</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {selectedItems.map((item, index) => (
                         <TableRow key={index}>
+                          <TableCell>{item.category || 'N/A'}</TableCell>
                           <TableCell>{item.item || 'N/A'}</TableCell>
                           <TableCell>{item.model || 'N/A'}</TableCell>
                           <TableCell>{item.brand || 'N/A'}</TableCell>
@@ -1211,6 +1408,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Category</TableHead>
                       <TableHead>Item</TableHead>
                       <TableHead>Model</TableHead>
                       <TableHead>Brand</TableHead>
@@ -1224,97 +1422,14 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                   <TableBody>
                     {selectedItems.map((item, index) => (
                       <TableRow key={index}>
+                        <TableCell>{item.category || 'N/A'}</TableCell>
                         <TableCell>{item.item || 'N/A'}</TableCell>
                         <TableCell>{item.model || 'N/A'}</TableCell>
                         <TableCell>{item.brand || 'N/A'}</TableCell>
                         <TableCell>{item.type || 'N/A'}</TableCell>
-                        <TableCell>
-                          {isViewMode || editingItemIndex !== index ? (
-                            `₹${(item.unitPrice || 0).toFixed(2)}`
-                          ) : (
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={item.unitPrice || 0}
-                              onChange={(e) => {
-                                const price = parseFloat(e.target.value) || 0;
-                                const updatedItems = selectedItems.map((selectedItem, i) => {
-                                  if (i === index) {
-                                    return {
-                                      ...selectedItem,
-                                      unitPrice: price,
-                                      total: price * (selectedItem.quantity || 1)
-                                    };
-                                  }
-                                  return selectedItem;
-                                });
-                                setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
-                              }}
-                              className="w-20"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {isViewMode || editingItemIndex !== index ? (
-                            item.quantity || 1
-                          ) : (
-                            <Input
-                              type="number"
-                              min="1"
-                              value={item.quantity || 1}
-                              onChange={(e) => handleItemQuantityChange(index, e.target.value)}
-                              className="w-20"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>₹{(item.total || 0).toFixed(2)}</TableCell>
-                        {!isViewMode && (
-                          <TableCell>
-                            {editingItemIndex === index ? (
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleSaveEdit(index)}
-                                  className="h-8 px-2"
-                                >
-                                  Save
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={handleCancelEdit}
-                                  className="h-8 px-2"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleStartEdit(index)}>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem 
-                                    onClick={() => handleRemoveSelectedItem(index)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </TableCell>
-                        )}
+                        <TableCell>{`₹${(item.unitPrice || 0).toFixed(2)}`}</TableCell>
+                        <TableCell>{item.quantity || 1}</TableCell>
+                        <TableCell>{`₹${(item.total || 0).toFixed(2)}`}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

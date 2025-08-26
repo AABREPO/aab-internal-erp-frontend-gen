@@ -14,12 +14,16 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
 
   const [itemForm, setItemForm] = useState({
     selectedItemId: '',
-    model: '',
-    brand: '',
-    item: '',
-    quantity: '1',
-    type: '',
-    category: '',
+    selectedItemName: '',
+    modelId: '',
+    modelName: '',
+    brandId: '',
+    brandName: '',
+    typeId: '',
+    typeName: '',
+    categoryId: '',
+    categoryName: '',
+    quantity: '1'
   });
 
   // Dropdown options state
@@ -101,10 +105,17 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     let items = dropdownOptions.models || [];
     
     // Filter by category first if category is selected
-    if (itemForm.category) {
-      items = items.filter(m => 
-        (m.category_id || m.categoryId)?.toString() === itemForm.category
-      );
+    if (itemForm.categoryId) {
+      items = items.filter(m => {
+        // Use category name for comparison since itemForm.category stores the name
+        const itemCategory = m.category || m.category_name || m.categoryName;
+        const matches = itemCategory?.toString() === itemForm.categoryName;
+        if (matches) {
+          console.log('Model matches category:', m, 'category field:', itemCategory);
+        }
+        return matches;
+      });
+      console.log(`Filtered models for category ${itemForm.categoryName}:`, items.length, 'items');
     }
     
     // Then filter by search query
@@ -114,17 +125,24 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         String(m.model || m.model_name || m.name || m.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.models, searchModel, itemForm.category]);
+  }, [dropdownOptions.models, searchModel, itemForm.categoryId]);
   
   const filteredBrands = useMemo(() => {
     const q = searchBrand.trim().toLowerCase();
     let items = dropdownOptions.brands || [];
     
     // Filter by category first if category is selected
-    if (itemForm.category) {
-      items = items.filter(b => 
-        (b.category_id || b.categoryId)?.toString() === itemForm.category
-      );
+    if (itemForm.categoryId) {
+      items = items.filter(b => {
+        // Use category name for comparison since itemForm.category stores the name
+        const itemCategory = b.category || b.category_name || b.categoryName;
+        const matches = itemCategory?.toString() === itemForm.categoryName;
+        if (matches) {
+          console.log('Brand matches category:', b, 'category field:', itemCategory);
+        }
+        return matches;
+      });
+      console.log(`Filtered brands for category ${itemForm.categoryName}:`, items.length, 'items');
     }
     
     // Then filter by search query
@@ -134,17 +152,24 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         String(b.brand || b.brand_name || b.name || b.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.brands, searchBrand, itemForm.category]);
+  }, [dropdownOptions.brands, searchBrand, itemForm.categoryId]);
   
   const filteredTypes = useMemo(() => {
     const q = searchType.trim().toLowerCase();
     let items = dropdownOptions.types || [];
     
     // Filter by category first if category is selected
-    if (itemForm.category) {
-      items = items.filter(t => 
-        (t.category_id || t.categoryId)?.toString() === itemForm.category
-      );
+    if (itemForm.categoryId) {
+      items = items.filter(t => {
+        // Use category name for comparison since itemForm.category stores the name
+        const itemCategory = t.category || t.category_name || t.categoryName;
+        const matches = itemCategory?.toString() === itemForm.categoryName;
+        if (matches) {
+          console.log('Type matches category:', t, 'category field:', itemCategory);
+        }
+        return matches;
+      });
+      console.log(`Filtered types for category ${itemForm.categoryName}:`, items.length, 'items');
     }
     
     // Then filter by search query
@@ -154,17 +179,24 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         String(t.typeColor || t.type_name || t.name || t.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.types, searchType, itemForm.category]);
+  }, [dropdownOptions.types, searchType, itemForm.categoryId]);
   
   const filteredItems = useMemo(() => {
     const q = searchItem.trim().toLowerCase();
     let items = dropdownOptions.itemNames || [];
     
     // Filter by category first if category is selected
-    if (itemForm.category) {
-      items = items.filter(i => 
-        (i.category_id || i.categoryId)?.toString() === itemForm.category
-      );
+    if (itemForm.categoryId) {
+      items = items.filter(i => {
+        // Use category name for comparison since itemForm.category stores the name
+        const itemCategory = i.category || i.category_name || i.categoryName;
+        const matches = itemCategory?.toString() === itemForm.categoryName;
+        if (matches) {
+          console.log('Item matches category:', i, 'category field:', itemCategory);
+        }
+        return matches;
+      });
+      console.log(`Filtered items for category ${itemForm.categoryName}:`, items.length, 'items');
     }
     
     // Then filter by search query
@@ -174,7 +206,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         String(i.itemName || i.item_name || i.name || i.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.itemNames, searchItem, itemForm.category]);
+  }, [dropdownOptions.itemNames, searchItem, itemForm.categoryId]);
   
   const filteredCategories = useMemo(() => {
     const q = searchCategory.trim().toLowerCase();
@@ -219,16 +251,16 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     if (itemForm.selectedItemId) {
       // Find the selected objects to get both IDs and display names
       const selectedModel = dropdownOptions.models.find(m => 
-        (m.id || m.model_id)?.toString() === itemForm.model
+        (m.id || m.model_id)?.toString() === itemForm.modelId
       );
       const selectedBrand = dropdownOptions.brands.find(b => 
-        (b.id || b.brand_id)?.toString() === itemForm.brand
+        (b.id || b.brand_id)?.toString() === itemForm.brandId
       );
       const selectedType = dropdownOptions.types.find(t => 
-        (t.id || t.type_id)?.toString() === itemForm.type
+        (t.id || t.type_id)?.toString() === itemForm.typeId
       );
       const selectedCategory = dropdownOptions.categories.find(c => 
-        (c.id || c.category_id)?.toString() === itemForm.category
+        (c.id || c.category_id)?.toString() === itemForm.categoryId
       );
       const selectedItem = dropdownOptions.itemNames.find(i => 
         (i.id || i.item_id)?.toString() === itemForm.selectedItemId
@@ -237,7 +269,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
       const newItem = {
         // Main item info
         id: parseInt(itemForm.selectedItemId),
-        item: selectedItem?.itemName || selectedItem?.item_name || itemForm.item,
+        item: selectedItem?.itemName || selectedItem?.item_name || itemForm.selectedItemName,
         quantity: parseInt(itemForm.quantity) || 1,
         
         // API required ID fields
@@ -260,12 +292,16 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
       onAddItem(newItem);
       setItemForm({ 
         selectedItemId: '', 
-        model: '', 
-        brand: '', 
-        item: '', 
-        quantity: '1',
-        type: '',
-        category: '' 
+        selectedItemName: '',
+        modelId: '', 
+        modelName: '',
+        brandId: '', 
+        brandName: '',
+        typeId: '', 
+        typeName: '',
+        categoryId: '', 
+        categoryName: '',
+        quantity: '1'
       });
     }
   };
@@ -278,53 +314,102 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
     }
   };
 
-  // Handle category change - reset other fields when category changes
-  const handleCategoryChange = (value) => {
-    console.log('Category changed to:', value);
+  // Debug function to log data structure
+  const debugDataStructure = () => {
+    console.log('=== DEBUG DATA STRUCTURE ===');
+    console.log('Categories:', dropdownOptions.categories);
+    console.log('Models:', dropdownOptions.models);
+    console.log('Brands:', dropdownOptions.brands);
+    console.log('Types:', dropdownOptions.types);
+    console.log('Items:', dropdownOptions.itemNames);
     
-    setItemForm(prev => ({ 
-      ...prev, 
-      category: value,
-      // Reset other fields when category changes
+    if (itemForm.categoryId) {
+      console.log('Selected Category Name:', itemForm.categoryName);
+      const selectedCategory = dropdownOptions.categories.find(c => 
+        (c.category || c.category_name)?.toString() === itemForm.categoryName
+      );
+      console.log('Selected Category Object:', selectedCategory);
+      console.log('Selected Category ID:', selectedCategory?.id || selectedCategory?.category_id);
+    }
+    
+    // Log sample items from each category to understand the data structure
+    console.log('=== SAMPLE ITEMS BY CATEGORY ===');
+    dropdownOptions.categories.forEach(cat => {
+      const catName = cat.category || cat.category_name;
+      const catId = cat.id || cat.category_id;
+      
+      const modelsInCat = dropdownOptions.models.filter(m => 
+        (m.category || m.category_name)?.toString() === catName?.toString()
+      );
+      const brandsInCat = dropdownOptions.brands.filter(b => 
+        (b.category || b.category_name)?.toString() === catName?.toString()
+      );
+      const typesInCat = dropdownOptions.types.filter(t => 
+        (t.category || t.category_name)?.toString() === catName?.toString()
+      );
+      const itemsInCat = dropdownOptions.itemNames.filter(i => 
+        (i.category || i.category_name)?.toString() === catName?.toString()
+      );
+      
+      console.log(`Category "${catName}" (ID: ${catId}):`, {
+        models: modelsInCat.length,
+        brands: brandsInCat.length,
+        types: typesInCat.length,
+        items: itemsInCat.length,
+        sampleModel: modelsInCat[0],
+        sampleBrand: brandsInCat[0],
+        sampleType: typesInCat[0],
+        sampleItem: itemsInCat[0]
+      });
+    });
+  };
+
+  // Handle category change with debugging
+  const handleCategoryChange = (categoryId) => {
+    console.log('=== CATEGORY CHANGE ===');
+    console.log('Previous category:', itemForm.categoryName);
+    console.log('New category ID:', categoryId);
+    
+    // Find the selected category to get both ID and name
+    const selectedCategory = dropdownOptions.categories.find(c => 
+      (c.id || c.category_id)?.toString() === categoryId
+    );
+    
+    // Clear dependent fields
+    setItemForm(prev => ({
+      ...prev,
+      categoryId: categoryId,
+      categoryName: selectedCategory?.category || selectedCategory?.category_name || '',
       selectedItemId: '',
-      model: '',
-      brand: '',
-      type: '',
-      item: ''
+      selectedItemName: '',
+      modelId: '',
+      modelName: '',
+      brandId: '',
+      brandName: '',
+      typeId: '',
+      typeName: '',
+      quantity: '1'
     }));
     
-    // Clear search terms for dependent fields
+    // Clear search terms
     setSearchModel('');
     setSearchBrand('');
     setSearchType('');
     setSearchItem('');
     
-    // Reset selected indices for keyboard navigation
-    setSelectedIndices(prev => ({
-      ...prev,
-      model: -1,
-      brand: -1,
-      type: -1,
-      item: -1
-    }));
+    // Reset keyboard navigation indices
+    setSelectedIndices({
+      category: 0,
+      model: 0,
+      brand: 0,
+      item: 0,
+      type: 0
+    });
     
-    // Log available filtered options for debugging
-    if (value) {
-      const selectedCategory = dropdownOptions.categories.find(c => 
-        (c.id || c.category_id)?.toString() === value
-      );
-      console.log('Selected category:', selectedCategory);
-      
-      // Log filtered counts for debugging
-      setTimeout(() => {
-        console.log('Filtered options after category change:', {
-          models: filteredModels.length,
-          brands: filteredBrands.length,
-          types: filteredTypes.length,
-          items: filteredItems.length
-        });
-      }, 100);
-    }
+    // Debug the data structure when category changes
+    setTimeout(() => {
+      debugDataStructure();
+    }, 100);
   };
 
   // Delete functions
@@ -366,6 +451,23 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
           categories: categoriesResult
         });
 
+        // Debug: Log sample data structure
+        if (modelsResult.success && modelsResult.data.length > 0) {
+          console.log('Sample model data structure:', modelsResult.data[0]);
+        }
+        if (brandsResult.success && brandsResult.data.length > 0) {
+          console.log('Sample brand data structure:', brandsResult.data[0]);
+        }
+        if (typesResult.success && typesResult.data.length > 0) {
+          console.log('Sample type data structure:', typesResult.data[0]);
+        }
+        if (itemNamesResult.success && itemNamesResult.data.length > 0) {
+          console.log('Sample item data structure:', itemNamesResult.data[0]);
+        }
+        if (categoriesResult.success && categoriesResult.data.length > 0) {
+          console.log('Sample category data structure:', categoriesResult.data[0]);
+        }
+
         // Update dropdown options
         setDropdownOptions({
           models: modelsResult.success ? modelsResult.data : [],
@@ -391,6 +493,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
           itemNamesCount: itemNamesResult.success ? itemNamesResult.data.length : 0,
           categoriesCount: categoriesResult.success ? categoriesResult.data.length : 0
         });
+
+        // Debug the complete data structure after loading
+        setTimeout(() => {
+          console.log('=== INITIAL DATA LOAD COMPLETE ===');
+          debugDataStructure();
+        }, 200);
 
       } catch (error) {
         console.error('Failed to load dropdown options:', error);
@@ -451,7 +559,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Category</label>
                   <div className="flex-1 relative">
                     <Select
-                      value={itemForm.category}
+                      value={itemForm.categoryId}
                       onValueChange={handleCategoryChange}
                     >
                       <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
@@ -484,7 +592,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         )}
                       </SelectContent>
                     </Select>
-                    {itemForm.category && (
+                    {itemForm.categoryId && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -504,15 +612,22 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Model</label>
                   <div className="flex-1 relative">
                     <Select
-                      value={itemForm.model}
-                      onValueChange={(value) => setItemForm(prev => ({ ...prev, model: value }))}
+                      value={itemForm.modelId}
+                      onValueChange={(value) => {
+                        const selected = dropdownOptions.models.find((m) => ((m.id || m.model_id)?.toString()) === value);
+                        setItemForm(prev => ({ 
+                          ...prev, 
+                          modelId: value,
+                          modelName: selected?.model || selected?.model_name || ''
+                        }));
+                      }}
                       disabled={loading.models}
                     >
                       <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
                         <SelectValue placeholder={
                           loading.models ? "Loading models..." : 
                           errors.models ? "Error loading models" : 
-                          itemForm.category ? `Select model (${filteredModels.length} available)` : 
+                          itemForm.categoryId ? `Select model (${filteredModels.length} available)` : 
                           "Select model"
                         } />
                       </SelectTrigger>
@@ -522,7 +637,14 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                             placeholder="Search model... (↑↓ to navigate, Enter to select)"
                             value={searchModel}
                             onChange={(e) => handleSearchChange(setSearchModel, e.target.value, 'model')}
-                            onKeyDown={(e) => handleKeyDown('model', e, filteredModels, (value) => setItemForm(prev => ({ ...prev, model: value })))}
+                            onKeyDown={(e) => handleKeyDown('model', e, filteredModels, (value) => {
+                              const selected = dropdownOptions.models.find((m) => ((m.id || m.model_id)?.toString()) === value);
+                              setItemForm(prev => ({ 
+                                ...prev, 
+                                modelId: value,
+                                modelName: selected?.model || selected?.model_name || ''
+                              }));
+                            })}
                             onPointerDown={(e) => e.stopPropagation()}
                             autoFocus
                             className="h-8 text-xs"
@@ -540,12 +662,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         ))}
                         {filteredModels.length === 0 && (
                           <div className="p-2 text-xs text-gray-500">
-                            {itemForm.category ? "No models found for selected category" : "No results"}
+                            {itemForm.categoryId ? "No models found for selected category" : "No results"}
                           </div>
                         )}
                       </SelectContent>
                     </Select>
-                    {itemForm.category && (
+                    {itemForm.categoryId && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
                     )}
                   </div>
@@ -556,11 +678,11 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Brand</label>
                   <div className="flex-1 relative">
                     <Select
-                      value={itemForm.brand}
-                      onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
+                      value={itemForm.brandId}
+                      onValueChange={(value) => setItemForm(prev => ({ ...prev, brandId: value }))}
                     >
                       <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                        <SelectValue placeholder={itemForm.category ? `Select brand (${filteredBrands.length} available)` : "Select brand"} />
+                        <SelectValue placeholder={itemForm.categoryId ? `Select brand (${filteredBrands.length} available)` : "Select brand"} />
                       </SelectTrigger>
                       <SelectContent>
                         <div className="p-2 border-b">
@@ -568,7 +690,14 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                             placeholder="Search brand... (↑↓ to navigate, Enter to select)"
                             value={searchBrand}
                             onChange={(e) => handleSearchChange(setSearchBrand, e.target.value, 'brand')}
-                            onKeyDown={(e) => handleKeyDown('brand', e, filteredBrands, (value) => setItemForm(prev => ({ ...prev, brand: value })))}
+                            onKeyDown={(e) => handleKeyDown('brand', e, filteredBrands, (value) => {
+                              const selected = dropdownOptions.brands.find((b) => ((b.id || b.brand_id)?.toString()) === value);
+                              setItemForm(prev => ({ 
+                                ...prev, 
+                                brandId: value,
+                                brandName: selected?.brand || selected?.brand_name || ''
+                              }));
+                            })}
                             onPointerDown={(e) => e.stopPropagation()}
                             autoFocus
                             className="h-8 text-xs"
@@ -586,12 +715,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         ))}
                         {filteredBrands.length === 0 && (
                           <div className="p-2 text-xs text-gray-500">
-                            {itemForm.category ? "No brands found for selected category" : "No results"}
+                            {itemForm.categoryId ? "No brands found for selected category" : "No results"}
                           </div>
                         )}
                       </SelectContent>
                     </Select>
-                    {itemForm.category && (
+                    {itemForm.categoryId && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
                     )}
                   </div>
@@ -608,12 +737,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         setItemForm(prev => ({ 
                           ...prev, 
                           selectedItemId: value,
-                          item: selected?.itemName || ''
+                          selectedItemName: selected?.itemName || selected?.item_name || ''
                         }));
                       }}
                     >
                       <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                        <SelectValue placeholder={itemForm.category ? `Select item (${filteredItems.length} available)` : "Select item"} />
+                        <SelectValue placeholder={itemForm.categoryId ? `Select item (${filteredItems.length} available)` : "Select item"} />
                       </SelectTrigger>
                       <SelectContent>
                         <div className="p-2 border-b">
@@ -626,7 +755,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                               setItemForm(prev => ({ 
                                 ...prev, 
                                 selectedItemId: value,
-                                item: selected?.itemName || ''
+                                selectedItemName: selected?.itemName || selected?.item_name || ''
                               }));
                             })}
                             onPointerDown={(e) => e.stopPropagation()}
@@ -646,12 +775,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         ))}
                         {filteredItems.length === 0 && (
                           <div className="p-2 text-xs text-gray-500">
-                            {itemForm.category ? "No items found for selected category" : "No results"}
+                            {itemForm.categoryId ? "No items found for selected category" : "No results"}
                           </div>
                         )}
                       </SelectContent>
                     </Select>
-                    {itemForm.category && (
+                    {itemForm.categoryId && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
                     )}
                   </div>
@@ -676,11 +805,18 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Type</label>
                   <div className="flex-1 relative">
                     <Select
-                      value={itemForm.type}
-                      onValueChange={(value) => setItemForm(prev => ({ ...prev, type: value }))}
+                      value={itemForm.typeId}
+                      onValueChange={(value) => {
+                        const selected = dropdownOptions.types.find((t) => ((t.id || t.type_id)?.toString()) === value);
+                        setItemForm(prev => ({ 
+                          ...prev, 
+                          typeId: value,
+                          typeName: selected?.typeColor || selected?.type_name || ''
+                        }));
+                      }}
                     >
                       <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                        <SelectValue placeholder={itemForm.category ? `Select type (${filteredTypes.length} available)` : "Select type"} />
+                        <SelectValue placeholder={itemForm.categoryId ? `Select type (${filteredTypes.length} available)` : "Select type"} />
                       </SelectTrigger>
                       <SelectContent>
                         <div className="p-2 border-b">
@@ -688,7 +824,14 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                             placeholder="Search type... (↑↓ to navigate, Enter to select)"
                             value={searchType}
                             onChange={(e) => handleSearchChange(setSearchType, e.target.value, 'type')}
-                            onKeyDown={(e) => handleKeyDown('type', e, filteredTypes, (value) => setItemForm(prev => ({ ...prev, type: value })))}
+                            onKeyDown={(e) => handleKeyDown('type', e, filteredTypes, (value) => {
+                              const selected = dropdownOptions.types.find((t) => ((t.id || t.type_id)?.toString()) === value);
+                              setItemForm(prev => ({ 
+                                ...prev, 
+                                typeId: value,
+                                typeName: selected?.typeColor || selected?.type_name || ''
+                              }));
+                            })}
                             onPointerDown={(e) => e.stopPropagation()}
                             autoFocus
                             className="h-8 text-xs"
@@ -706,12 +849,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         ))}
                         {filteredTypes.length === 0 && (
                           <div className="p-2 text-xs text-gray-500">
-                            {itemForm.category ? "No types found for selected category" : "No results"}
+                            {itemForm.categoryId ? "No types found for selected category" : "No results"}
                           </div>
                         )}
                       </SelectContent>
                     </Select>
-                    {itemForm.category && (
+                    {itemForm.categoryId && (
                       <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full" title="Filtered by category"></div>
                     )}
                   </div>
