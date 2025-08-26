@@ -333,7 +333,7 @@ class PurchaseOrderService {
   // Get all groups
   async getAllGroups() {
     try {
-      const response = await coreApiClient.get('/group_name/getAll');
+      const response = await coreApiClient.get('/po_group/getAll');
       return {
         success: true,
         data: response.data,
@@ -435,6 +435,18 @@ class PurchaseOrderService {
   // Generic CRUD helpers for catalogs
   async createCatalogItem(resourcePath, payload) {
     try {
+      // Handle Site Incharge specific structure
+      if (resourcePath === '/site_incharge') {
+        const siteInchargePayload = {
+          mobileNumber: payload.mobileNumber || '',
+          siteEngineer: payload.siteEngineer || payload.name || '',
+          sites: payload.sites || []
+        };
+        const response = await coreApiClient.post(`${resourcePath}/save`, siteInchargePayload);
+        return { success: true, data: response.data };
+      }
+      
+      // Default handling for other catalog items
       const response = await coreApiClient.post(`${resourcePath}/save`, payload);
       return { success: true, data: response.data };
     } catch (error) {
@@ -444,6 +456,18 @@ class PurchaseOrderService {
 
   async updateCatalogItem(resourcePath, id, payload) {
     try {
+      // Handle Site Incharge specific structure
+      if (resourcePath === '/site_incharge') {
+        const siteInchargePayload = {
+          mobileNumber: payload.mobileNumber || '',
+          siteEngineer: payload.siteEngineer || payload.name || '',
+          sites: payload.sites || []
+        };
+        const response = await coreApiClient.put(`${resourcePath}/edit/${id}`, siteInchargePayload);
+        return { success: true, data: response.data };
+      }
+      
+      // Default handling for other catalog items
       const response = await coreApiClient.put(`${resourcePath}/edit/${id}`, payload);
       return { success: true, data: response.data };
     } catch (error) {
@@ -463,18 +487,21 @@ class PurchaseOrderService {
   // Format purchase order data for API
   formatPurchaseOrderData(data) {
     return {
-      id: data.id || null,
-      eno: data.eno,
       vendor_id: parseInt(data.vendor_id),
       client_id: parseInt(data.client_id),
       site_incharge_id: parseInt(data.site_incharge_id),
       date: data.date,
       site_incharge_mobile_number: data.site_incharge_mobile_number,
-      created_by: data.created_by || 'admin',
-      created_date_time: data.created_date_time || new Date().toISOString(),
-      delete_status: data.delete_status || false,
-      purchase_table: data.purchase_table || [],
-      po_notes: data.po_notes || null,
+      eno: data.eno,
+      purchase_table: (data.purchase_table || []).map(item => ({
+        item_id: parseInt(item.item_id || item.itemId),
+        category_id: parseInt(item.category_id || item.categoryId),
+        model_id: parseInt(item.model_id || item.modelId),
+        brand_id: parseInt(item.brand_id || item.brandId),
+        type_id: parseInt(item.type_id || item.typeId),
+        quantity: parseInt(item.quantity || 0),
+        amount: parseFloat(item.amount || item.total || item.unitPrice || 0)
+      }))
     };
   }
 }

@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Settings, Trash2 } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { ArrowLeft, Settings, Trash2, RefreshCw, MoreHorizontal, Edit } from "lucide-react";
 import { useNavigate, useParams } from 'react-router-dom';
 import { purchaseOrderService } from '@/lib/purchaseOrderService';
 import { SidePanel } from '@/components/SidePanel';
@@ -83,6 +84,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
   // Side panel state
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState([]);
+  const [editingItemIndex, setEditingItemIndex] = useState(null);
   
   // Client projects state
   const [projects, setProjects] = useState([]);
@@ -107,9 +109,26 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
   const filterVendors = (list) => {
     const q = filterSearchVendor.trim().toLowerCase();
     if (!q) return (list || []).slice(0, 10);
-    return (list || [])
-      .filter(v => String(v.name || v.vendor_name || v.id || '').toLowerCase().includes(q))
-      .slice(0, 10);
+    
+    const filtered = (list || []).filter(v => {
+      const searchText = String(v.vendorName || v.vendor_name || v.name || v.id || '').toLowerCase();
+      const matches = searchText.includes(q);
+      // Debug logging for first few items
+      if (list.indexOf(v) < 3) {
+        console.log('Vendor filter debug:', { 
+          vendor: v, 
+          searchText, 
+          query: q, 
+          matches,
+          vendorName: v.vendorName,
+          vendor_name: v.vendor_name,
+          name: v.name 
+        });
+      }
+      return matches;
+    });
+    
+    return filtered.slice(0, 10);
   };
 
   // Site incharge state
@@ -219,9 +238,14 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
           setLoading(false);
         }
       } else if (isCreateMode) {
-        // Set default PO number for new orders
-        const nextPoNumber = `PO-${String(Math.floor(Math.random() * 999999) + 1).padStart(6, '0')}`;
-        setFormData(prev => ({ ...prev, eno: nextPoNumber }));
+        // Leave PO number blank initially - will be generated when vendor is selected
+        // Set default current date for new PO
+        const currentDate = new Date().toISOString().split('T')[0];
+        setFormData(prev => ({ 
+          ...prev, 
+          eno: '',
+          date: currentDate
+        }));
       }
     };
 
@@ -269,6 +293,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
         if (result.success) {
           setVendors(Array.isArray(result.data) ? result.data : []);
           console.log('Vendors loaded:', result.data);
+          console.log('First vendor structure:', result.data?.[0]);
         } else {
           setVendorsError(result.error);
           console.error('Failed to load vendors:', result.error);
@@ -329,19 +354,74 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Generate PO number based on vendor
+  const generatePONumber = (vendorId, vendorName) => {
+    const currentYear = new Date().getFullYear();
+    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+    
+    // Generate vendor-specific prefix based on vendor name
+    let vendorPrefix = 'PO';
+    if (vendorName) {
+      // Extract meaningful characters from vendor name for prefix
+      const cleanName = vendorName.replace(/[^A-Za-z]/g, '').toUpperCase();
+      if (cleanName.length >= 3) {
+        vendorPrefix = cleanName.substring(0, 3);
+      } else if (cleanName.length >= 2) {
+        vendorPrefix = cleanName + 'X';
+      } else {
+        // Fallback to vendor ID if name is too short
+        vendorPrefix = `V${String(vendorId).padStart(2, '0')}`;
+      }
+    }
+    
+    // Generate unique sequence number 
+    // In real implementation, this should come from backend API to ensure uniqueness
+    // For now, using timestamp + random for better uniqueness
+    const timestamp = Date.now().toString().slice(-4);
+    const random = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');
+    const sequenceNumber = timestamp + random;
+    
+    // Different formats based on vendor (can be customized per vendor)
+    const formats = {
+      'default': `${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`,
+      'short': `${vendorPrefix}${currentYear.toString().slice(-2)}${currentMonth}${sequenceNumber}`,
+      'long': `PO-${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`
+    };
+    
+    // For now, use default format. In real implementation, 
+    // vendor-specific format preferences could be stored in backend
+    return formats.default;
+  };
+
   // Side panel handlers
 
 
   const handleAddItem = (item) => {
-    // Ensure we carry the numeric item id from API selection
-    const itemId = parseInt(item.id) || null;
+    console.log('Adding item from sidebar:', item);
+    
+    // The SidePanel now sends both IDs and display names properly
     const newItem = {
       ...item,
-      id: itemId,
       quantity: item.quantity || 1,
       unitPrice: 0,
       total: 0,
     };
+    
+    // Validate that we have required IDs
+    if (!newItem.item_id) {
+      console.error('Item missing required item_id:', newItem);
+      alert('Error: Item is missing required ID. Please try selecting the item again.');
+      return;
+    }
+    
+    console.log('Item added successfully with IDs:', {
+      item_id: newItem.item_id,
+      category_id: newItem.category_id,
+      model_id: newItem.model_id,
+      brand_id: newItem.brand_id,
+      type_id: newItem.type_id
+    });
+    
     setSelectedItems(prev => [...prev, newItem]);
     setFormData(prev => ({
       ...prev,
@@ -357,6 +437,20 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       ...prev,
       purchase_table: prev.purchase_table.filter((_, i) => i !== index)
     }));
+  };
+
+  // Inline editing functions
+  const handleStartEdit = (index) => {
+    setEditingItemIndex(index);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemIndex(null);
+  };
+
+  const handleSaveEdit = (index) => {
+    setEditingItemIndex(null);
+    // The item is already updated in selectedItems through handleItemQuantityChange and handleItemUnitPriceChange
   };
 
   const handleItemQuantityChange = (index, quantity) => {
@@ -384,43 +478,60 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     try {
       setLoading(true);
       
+      // Validate required fields
+      if (!formData.vendor_id || !formData.client_id || !formData.site_incharge_id || !formData.date || !formData.eno) {
+        alert('Please fill in all required fields: Vendor, Client, Site Incharge, Date, and PO Number');
+        setLoading(false);
+        return;
+      }
+
+      if (selectedItems.length === 0) {
+        alert('Please add at least one item to the purchase order');
+        setLoading(false);
+        return;
+      }
+      
       // Format purchase table for API
       const purchaseTable = selectedItems.map(item => ({
-        item_id: parseInt(item.id),
-        category_id: item.category_id ? parseInt(item.category_id) : 2,
-        model_id: item.model_id ? parseInt(item.model_id) : 3,
-        brand_id: item.brand_id ? parseInt(item.brand_id) : 4,
-        type_id: item.type_id ? parseInt(item.type_id) : 5,
+        item_id: parseInt(item.id || item.itemId),
+        category_id: parseInt(item.category_id || item.categoryId),
+        model_id: parseInt(item.model_id || item.modelId),
+        brand_id: parseInt(item.brand_id || item.brandId),
+        type_id: parseInt(item.type_id || item.typeId),
         quantity: parseInt(item.quantity) || 1,
-        amount: parseFloat(item.total) || 0
+        amount: parseFloat(item.total || item.unitPrice) || 0
       }));
 
-      // Format data according to the API structure
+      // Format data according to the correct API structure
       const apiPayload = {
-        vendor_id: parseInt(formData.vendor_id) || 101,
-        client_id: parseInt(formData.client_id) || 202,
-        site_incharge_id: parseInt(formData.site_incharge_id) || 303,
-        date: formData.date || new Date().toISOString().split('T')[0],
-        site_incharge_mobile_number: formData.site_incharge_mobile_number || "",
-        created_by: formData.created_by || "Admin",
-        created_date_time: new Date().toISOString(),
-        eno: formData.eno || "1",
-        delete_status: false,
-        purchase_table: purchaseTable,
-        po_notes: {
-          po_notes: formData.po_notes || ""
-        }
+        vendor_id: parseInt(formData.vendor_id),
+        client_id: parseInt(formData.client_id),
+        site_incharge_id: parseInt(formData.site_incharge_id),
+        date: formData.date,
+        site_incharge_mobile_number: formData.site_incharge_mobile_number,
+        eno: formData.eno,
+        purchase_table: purchaseTable
       };
 
       console.log('Sending API payload:', apiPayload);
 
-      // Call the new API endpoint (axios response)
-      const response = await coreApiClient.post('/purchase_orders/save', apiPayload);
+      let response;
+      if (isEditMode) {
+        // Use PUT method for edit with correct endpoint
+        response = await coreApiClient.put(`/purchase_orders/edit/${id}`, apiPayload);
+      } else {
+        // Use POST method for create
+        response = await coreApiClient.post('/purchase_orders/create', apiPayload);
+      }
 
       // Consider HTTP 200/201 as success
       if (response?.status >= 200 && response?.status < 300) {
         const result = response.data;
-        console.log('Purchase order saved successfully:', result);
+        const action = isEditMode ? 'updated' : 'created';
+        console.log(`Purchase order ${action} successfully:`, result);
+
+        // Show success message
+        alert(`Purchase order ${action} successfully!`);
 
         // Redirect to list immediately after successful create/edit
         navigate('/procurement/purchase-order');
@@ -433,12 +544,17 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
           });
         }, 0);
       } else {
-        console.error('Failed to save purchase order:', response);
-        setError('Failed to save purchase order. Please try again.');
+        const action = isEditMode ? 'update' : 'create';
+        console.error(`Failed to ${action} purchase order:`, response);
+        setError(`Failed to ${action} purchase order. Please try again.`);
+        alert(`Failed to ${action} purchase order. Please check the form and try again.`);
       }
     } catch (error) {
       console.error('Error saving purchase order:', error);
-      setError('An error occurred while saving. Please try again.');
+      const action = isEditMode ? 'updating' : 'creating';
+      const errorMessage = error.response?.data?.message || `An error occurred while ${action}. Please try again.`;
+      setError(errorMessage);
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -539,7 +655,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       it.brand || '-',
       it.type || '-',
       it.quantity || 0,
-      it.unitPrice || 0
+      `₹${(it.unitPrice || 0).toFixed(2)}`
     ]);
 
     // Pad empty rows so table height is consistent
@@ -554,7 +670,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       "", "", "", "", "",
       { content: `TOTAL`, styles: { fontStyle: "bold", halign: "center" } },
       { content: `${totalQty}`, styles: { fontStyle: "bold", halign: "center" } },
-      { content: `${totalPrice.toFixed(2)}`, styles: { fontStyle: "bold", halign: "center" } }
+      { content: `₹${totalPrice.toFixed(2)}`, styles: { fontStyle: "bold", halign: "center" } }
     ]);
 
     autoTable(doc, {
@@ -690,14 +806,36 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="eno">Purchase Order Number (ENO)</Label>
-                <Input
-                  id="eno"
-                  value={formData.eno}
-                  onChange={(e) => handleInputChange('eno', e.target.value)}
-                  placeholder="Enter PO number (e.g., PO-2024-001)"
-                  readOnly={isViewMode}
-                  className={isViewMode ? "bg-gray-50" : ""}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="eno"
+                    value={formData.eno}
+                    onChange={(e) => handleInputChange('eno', e.target.value)}
+                    placeholder={!formData.vendor_id ? "Please select a vendor first" : "PO number will be generated"}
+                    readOnly={isViewMode}
+                    className={isViewMode ? "bg-gray-50" : ""}
+                  />
+                  {isCreateMode && formData.vendor_id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === formData.vendor_id);
+                        const newPONumber = generatePONumber(formData.vendor_id, selectedVendor?.vendorName || '');
+                        handleInputChange('eno', newPONumber);
+                        console.log('Regenerated PO number:', newPONumber);
+                      }}
+                      title="Generate new PO number"
+                      className="px-2"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {!formData.vendor_id && isCreateMode && (
+                  <p className="text-xs text-gray-500">PO number will be generated automatically when you select a vendor</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="vendor_id">Vendor</Label>
@@ -710,8 +848,31 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                     value={formData.vendor_id} 
                     onValueChange={(value) => {
                       const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
+                      const vendorName = selectedVendor?.vendorName || '';
+                      
+                      // If vendor is being changed and we already have a PO number, ask user if they want to regenerate
+                      if (isCreateMode && formData.vendor_id && formData.eno && formData.vendor_id !== value) {
+                        const shouldRegenerate = window.confirm(
+                          'Changing vendor will generate a new PO number. Do you want to continue?'
+                        );
+                        if (!shouldRegenerate) {
+                          return; // Don't change vendor if user cancels
+                        }
+                      }
+                      
                       handleInputChange('vendor_id', value);
-                      handleInputChange('vendor_name', selectedVendor?.vendorName || '');
+                      handleInputChange('vendor_name', vendorName);
+                      
+                      // Generate PO number when vendor is selected (create mode)
+                      if (isCreateMode) {
+                        const newPONumber = generatePONumber(value, vendorName);
+                        handleInputChange('eno', newPONumber);
+                        console.log('Generated PO number for vendor:', { 
+                          vendorId: value, 
+                          vendorName, 
+                          poNumber: newPONumber 
+                        });
+                      }
                     }}
                     disabled={loadingVendors}
                   >
@@ -831,8 +992,8 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                       handleInputChange('site_incharge_id', value);
                       handleInputChange('siteEngineer', selected?.siteEngineer || '');
                       // Auto load mobile number if present
-                      if (selected?.site_incharge_mobile_number) {
-                        handleInputChange('site_incharge_mobile_number', selected.site_incharge_mobile_number);
+                      if (selected?.mobileNumber) {
+                        handleInputChange('site_incharge_mobile_number', selected.mobileNumber);
                       }
                     }}
                     disabled={loadingIncharges}
@@ -893,18 +1054,9 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="site_incharge_mobile_number">Site Incharge Mobile Number</Label>
-                {isViewMode ? (
-                  <div className="p-3 bg-gray-50 border rounded-md">
-                    <p className="font-medium">{formData.site_incharge_mobile_number}</p>
-                  </div>
-                ) : (
-                  <Input
-                    id="site_incharge_mobile_number"
-                    value={formData.site_incharge_mobile_number}
-                    onChange={(e) => handleInputChange('site_incharge_mobile_number', e.target.value)}
-                    placeholder="Enter mobile number"
-                  />
-                )}
+                <div className="p-3 bg-gray-50 border rounded-md">
+                  <p className="font-medium">{formData.site_incharge_mobile_number || 'Not available'}</p>
+                </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -956,9 +1108,9 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                           <TableCell>{item.model || 'N/A'}</TableCell>
                           <TableCell>{item.brand || 'N/A'}</TableCell>
                           <TableCell>{item.type || 'N/A'}</TableCell>
-                          <TableCell>{`$${(item.unitPrice || 0).toFixed(2)}`}</TableCell>
+                          <TableCell>{`₹${(item.unitPrice || 0).toFixed(2)}`}</TableCell>
                           <TableCell>{item.quantity || 1}</TableCell>
-                          <TableCell>{`$${(item.total || 0).toFixed(2)}`}</TableCell>
+                          <TableCell>{`₹${(item.total || 0).toFixed(2)}`}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -966,7 +1118,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                   <div className="p-4 border-t bg-gray-50">
                     <div className="flex justify-end">
                       <p className="text-lg font-semibold">
-                        Total: ${selectedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                        Total: ₹{selectedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -997,8 +1149,8 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                         <TableCell>{item.brand || 'N/A'}</TableCell>
                         <TableCell>{item.type || 'N/A'}</TableCell>
                         <TableCell>
-                          {isViewMode ? (
-                            `$${(item.unitPrice || 0).toFixed(2)}`
+                          {isViewMode || editingItemIndex !== index ? (
+                            `₹${(item.unitPrice || 0).toFixed(2)}`
                           ) : (
                             <Input
                               type="number"
@@ -1025,7 +1177,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                           )}
                         </TableCell>
                         <TableCell>
-                          {isViewMode ? (
+                          {isViewMode || editingItemIndex !== index ? (
                             item.quantity || 1
                           ) : (
                             <Input
@@ -1037,16 +1189,50 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                             />
                           )}
                         </TableCell>
-                        <TableCell>${(item.total || 0).toFixed(2)}</TableCell>
+                        <TableCell>₹{(item.total || 0).toFixed(2)}</TableCell>
                         {!isViewMode && (
                           <TableCell>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRemoveSelectedItem(index)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            {editingItemIndex === index ? (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveEdit(index)}
+                                  className="h-8 px-2"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleCancelEdit}
+                                  className="h-8 px-2"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleStartEdit(index)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRemoveSelectedItem(index)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
                           </TableCell>
                         )}
                       </TableRow>
@@ -1056,7 +1242,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                 <div className="p-4 border-t bg-gray-50">
                   <div className="flex justify-end">
                     <p className="text-lg font-semibold">
-                      Total: ${selectedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
+                      Total: ₹{selectedItems.reduce((sum, item) => sum + item.total, 0).toFixed(2)}
                     </p>
                   </div>
                 </div>

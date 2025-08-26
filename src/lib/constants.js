@@ -20,7 +20,7 @@ export const CORE_API_ENDPOINTS = {
   GET_ALL_PURCHASE_ORDERS: '/purchase_orders/getAll',
   GET_PURCHASE_ORDER_DETAILS: '/purchase_orders/details',
   CREATE_PURCHASE_ORDER: '/purchase_orders/create',
-  UPDATE_PURCHASE_ORDER: '/purchase_orders/update',
+  UPDATE_PURCHASE_ORDER: '/purchase_orders/edit',
   DELETE_PURCHASE_ORDER: '/purchase_orders/delete',
   // Add more core functionality endpoints as needed
 };

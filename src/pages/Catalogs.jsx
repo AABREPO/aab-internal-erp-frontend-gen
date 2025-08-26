@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,101 @@ function useCatalog(apiFn, nameKeyCandidates) {
   return { items, filtered, loading, error, search, setSearch, reload: load };
 }
 
+// Component for sites management table (outside main component to prevent focus loss)
+const SitesManagementTable = ({ sites, addSite, removeSite, updateSite }) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <Label>Sites</Label>
+      <Button 
+        type="button" 
+        variant="outline" 
+        size="sm" 
+        onClick={addSite}
+        className="h-6 px-2"
+      >
+        <Plus className="h-3 w-3 mr-1" />
+        Add Site
+      </Button>
+    </div>
+    <div className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
+      {/* Header */}
+      <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-500 pb-2 border-b">
+        <div className="col-span-3">Site Name</div>
+        <div className="col-span-2">Site No</div>
+        <div className="col-span-2">Status</div>
+        <div className="col-span-4">Branch</div>
+        <div className="col-span-1">Action</div>
+      </div>
+      
+      {/* Rows */}
+      {sites.map((site, index) => (
+        <div key={index} className="grid grid-cols-12 gap-2 items-center">
+          {/* Site Name */}
+          <div className="col-span-3">
+            <Input
+              placeholder="Site name..."
+              value={site.siteName}
+              onChange={(e) => updateSite(index, 'siteName', e.target.value)}
+              className="h-8"
+            />
+          </div>
+          
+          {/* Site No */}
+          <div className="col-span-2">
+            <Input
+              placeholder="Site no..."
+              value={site.siteNo}
+              onChange={(e) => updateSite(index, 'siteNo', e.target.value)}
+              className="h-8"
+            />
+          </div>
+          
+          {/* Status */}
+          <div className="col-span-2">
+            <Select 
+              value={site.siteStatus ? "true" : "false"} 
+              onValueChange={(value) => updateSite(index, 'siteStatus', value === "true")}
+            >
+              <SelectTrigger className="h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="true">Active</SelectItem>
+                <SelectItem value="false">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Branch */}
+          <div className="col-span-4">
+            <Input
+              placeholder="Branch..."
+              value={site.branch}
+              onChange={(e) => updateSite(index, 'branch', e.target.value)}
+              className="h-8"
+            />
+          </div>
+          
+          {/* Remove Button */}
+          <div className="col-span-1">
+            {sites.length > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => removeSite(index)}
+                className="h-8 w-8 p-0"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resourcePath, customFields = [], hasAdvancedFields = false }) {
   const { filtered, loading, error, search, setSearch, reload } = useCatalog(apiFn, nameKeyCandidates);
   const [newName, setNewName] = useState('');
@@ -60,7 +155,38 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
   const [customFieldValues, setCustomFieldValues] = useState({});
   const [saving, setSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [categories, setCategories] = useState([]);
+
+  // Reset form states when title changes (tab switch)
+  useEffect(() => {
+    setNewName('');
+    setNewCategory('');
+    setCustomFieldValues({});
+    setIsModalOpen(false);
+    setEditModalOpen(false);
+    setEditingItem(null);
+    if (hasAdvancedFields) {
+      setSelectedGroup('');
+      setCombinedRows([{ 
+        model: '', 
+        brand: '', 
+        type: '', 
+        minQty: '', 
+        defaultQty: '' 
+      }]);
+    }
+    // Reset sites for Site Incharge
+    if (title === 'Site In-charge') {
+      setSites([{
+        siteName: '',
+        siteNo: '',
+        siteStatus: true,
+        branch: ''
+      }]);
+    }
+  }, [title, hasAdvancedFields]);
   
   // Advanced fields for Items
   const [selectedGroup, setSelectedGroup] = useState('');
@@ -75,6 +201,14 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
   const [models, setModels] = useState([]);
   const [brands, setBrands] = useState([]);
   const [types, setTypes] = useState([]);
+
+  // Sites management for Site Incharge
+  const [sites, setSites] = useState([{
+    siteName: '',
+    siteNo: '',
+    siteStatus: true,
+    branch: ''
+  }]);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -192,6 +326,28 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     ));
   };
 
+  // Helper functions for sites management
+  const addSite = () => {
+    setSites([...sites, {
+      siteName: '',
+      siteNo: '',
+      siteStatus: true,
+      branch: ''
+    }]);
+  };
+
+  const removeSite = (index) => {
+    if (sites.length > 1) {
+      setSites(sites.filter((_, i) => i !== index));
+    }
+  };
+
+  const updateSite = (index, field, value) => {
+    setSites(sites.map((site, i) => 
+      i === index ? { ...site, [field]: value } : site
+    ));
+  };
+
   const handleCreate = async () => {
     if (!newName.trim()) {
       alert('Please enter a name');
@@ -200,15 +356,32 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     
     setSaving(true);
     try {
-      const payload = { 
-        [nameKeyCandidates[0]]: newName,
-        ...(newCategory && { category_id: newCategory }),
-        ...customFieldValues,
-        ...(hasAdvancedFields && {
-          group_id: selectedGroup,
-          combined_items: combinedRows.filter(row => row.model || row.brand || row.type)
-        })
-      };
+      // Find the selected category to get its value/name
+      const selectedCategoryObj = newCategory ? 
+        categories.find(cat => String(cat.id || cat.category_id) === newCategory) : null;
+      const categoryValue = selectedCategoryObj ? 
+        (selectedCategoryObj.category || selectedCategoryObj.category_name || selectedCategoryObj.name) : null;
+
+      // Handle Site In-charge specific payload structure
+      let payload;
+      if (title === 'Site In-charge') {
+        payload = {
+          siteEngineer: newName,
+          mobileNumber: customFieldValues.mobileNumber || '',
+          sites: sites.filter(site => site.siteName.trim()) // Only include sites with names
+        };
+      } else {
+        // Default payload for other catalog items
+        payload = { 
+          [nameKeyCandidates[0]]: newName,
+          ...(categoryValue && { category: categoryValue }),
+          ...customFieldValues,
+          ...(hasAdvancedFields && {
+            group_id: selectedGroup,
+            combined_items: combinedRows.filter(row => row.model || row.brand || row.type)
+          })
+        };
+      }
       
       console.log('Creating item with payload:', payload);
       const res = await purchaseOrderService.createCatalogItem(resourcePath, payload);
@@ -228,6 +401,14 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
             defaultQty: '' 
           }]);
         }
+        if (title === 'Site In-charge') {
+          setSites([{
+            siteName: '',
+            siteNo: '',
+            siteStatus: true,
+            branch: ''
+          }]);
+        }
         setIsModalOpen(false);
         reload();
         alert(`${title.slice(0, -1)} created successfully!`);
@@ -243,18 +424,139 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     }
   };
 
-  const handleRename = async (row) => {
+  const handleEdit = (row) => {
     const id = resolveId(row);
-    const current = resolveName(row);
-    const next = window.prompt(`Rename ${title.slice(0, -1)}`, current);
-    if (next == null || next.trim() === '' || next === current) return;
+    const name = resolveName(row);
+    
+    // Set up editing state
+    setEditingItem(row);
+    setNewName(name);
+    
+    // Set custom field values if they exist
+    const editCustomFieldValues = {};
+    customFields.forEach(field => {
+      editCustomFieldValues[field.key] = row[field.key] || '';
+    });
+    setCustomFieldValues(editCustomFieldValues);
+    
+    // Set category if applicable and exists
+    // Look for category value and find matching category ID for the dropdown
+    const rowCategoryValue = row.category || row.category_name;
+    if (rowCategoryValue) {
+      const matchingCategory = categories.find(cat => 
+        (cat.category || cat.category_name || cat.name) === rowCategoryValue
+      );
+      setNewCategory(matchingCategory ? String(matchingCategory.id || matchingCategory.category_id) : '');
+    } else if (row.category_id) {
+      // Fallback to category_id if category value is not found
+      setNewCategory(String(row.category_id));
+    } else {
+      setNewCategory('');
+    }
+    
+    // Set advanced fields for Items
+    if (hasAdvancedFields) {
+      setSelectedGroup(row.group_id ? String(row.group_id) : '');
+      
+      // Set combined rows if they exist
+      if (row.combined_items && Array.isArray(row.combined_items)) {
+        setCombinedRows(row.combined_items.map(item => ({
+          model: item.model_id ? String(item.model_id) : '',
+          brand: item.brand_id ? String(item.brand_id) : '',
+          type: item.type_id ? String(item.type_id) : '',
+          minQty: item.min_qty || '',
+          defaultQty: item.default_qty || ''
+        })));
+      }
+    }
+    
+    // Set sites for Site Incharge
+    if (title === 'Site In-charge') {
+      if (row.sites && Array.isArray(row.sites) && row.sites.length > 0) {
+        setSites(row.sites.map(site => ({
+          siteName: site.siteName || '',
+          siteNo: site.siteNo || '',
+          siteStatus: site.siteStatus !== undefined ? site.siteStatus : true,
+          branch: site.branch || ''
+        })));
+      } else {
+        setSites([{
+          siteName: '',
+          siteNo: '',
+          siteStatus: true,
+          branch: ''
+        }]);
+      }
+    }
+    
+    setEditModalOpen(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!newName.trim()) {
+      alert('Please enter a name');
+      return;
+    }
+    
+    const id = resolveId(editingItem);
+    setSaving(true);
     
     try {
-      const payload = { [nameKeyCandidates[0]]: next };
+      // Find the selected category to get its value/name
+      const selectedCategoryObj = newCategory ? 
+        categories.find(cat => String(cat.id || cat.category_id) === newCategory) : null;
+      const categoryValue = selectedCategoryObj ? 
+        (selectedCategoryObj.category || selectedCategoryObj.category_name || selectedCategoryObj.name) : null;
+
+      // Handle Site In-charge specific payload structure
+      let payload;
+      if (title === 'Site In-charge') {
+        payload = {
+          siteEngineer: newName,
+          mobileNumber: customFieldValues.mobileNumber || '',
+          sites: sites.filter(site => site.siteName.trim()) // Only include sites with names
+        };
+      } else {
+        // Default payload for other catalog items
+        payload = { 
+          [nameKeyCandidates[0]]: newName,
+          ...(categoryValue && { category: categoryValue }),
+          ...customFieldValues,
+          ...(hasAdvancedFields && {
+            group_id: selectedGroup,
+            combined_items: combinedRows.filter(row => row.model || row.brand || row.type)
+          })
+        };
+      }
+      
       console.log('Updating item:', id, payload);
       const res = await purchaseOrderService.updateCatalogItem(resourcePath, id, payload);
       
       if (res.success) {
+        // Reset form
+        setNewName('');
+        setNewCategory('');
+        setCustomFieldValues({});
+        setEditingItem(null);
+        if (hasAdvancedFields) {
+          setSelectedGroup('');
+          setCombinedRows([{ 
+            model: '', 
+            brand: '', 
+            type: '', 
+            minQty: '', 
+            defaultQty: '' 
+          }]);
+        }
+        if (title === 'Site In-charge') {
+          setSites([{
+            siteName: '',
+            siteNo: '',
+            siteStatus: true,
+            branch: ''
+          }]);
+        }
+        setEditModalOpen(false);
         reload();
         alert(`${title.slice(0, -1)} updated successfully!`);
       } else {
@@ -264,6 +566,8 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     } catch (error) {
       console.error('Update error:', error);
       alert(`Error updating ${title.toLowerCase().slice(0, -1)}: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -427,6 +731,8 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
     </div>
   );
 
+
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between">
@@ -441,7 +747,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 Add {title.slice(0, -1)}
               </Button>
             </DialogTrigger>
-            <DialogContent className={hasAdvancedFields ? "max-w-6xl" : "max-w-lg"}>
+            <DialogContent className={hasAdvancedFields || title === 'Site In-charge' ? "max-w-6xl" : "max-w-lg"}>
               <DialogHeader>
                 <DialogTitle>Add New {title.slice(0, -1)}</DialogTitle>
               </DialogHeader>
@@ -470,7 +776,18 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                       }))}
                     />
                   </div>
-                ))}                
+                ))}
+                
+                {/* Sites management for Site In-charge */}
+                {title === 'Site In-charge' && (
+                  <SitesManagementTable 
+                    sites={sites}
+                    addSite={addSite}
+                    removeSite={removeSite}
+                    updateSite={updateSite}
+                  />
+                )}
+                
                 {/* Advanced fields for Items */}
                 {hasAdvancedFields && (
                   <>
@@ -548,6 +865,127 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          
+          {/* Edit Modal */}
+          <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+            <DialogContent className={hasAdvancedFields || title === 'Site In-charge' ? "max-w-6xl" : "max-w-lg"}>
+              <DialogHeader>
+                <DialogTitle>Edit {title.slice(0, -1)}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Name</Label>
+                  <Input
+                    id="edit-name"
+                    placeholder={`Enter ${title.toLowerCase().slice(0, -1)} name...`}
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                  />
+                </div>                
+                {/* Custom Fields */}
+                {customFields.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={`edit-${field.key}`}>{field.label}</Label>
+                    <Input
+                      id={`edit-${field.key}`}
+                      type={field.type || 'text'}
+                      placeholder={field.placeholder}
+                      value={customFieldValues[field.key] || ''}
+                      onChange={(e) => setCustomFieldValues(prev => ({
+                        ...prev,
+                        [field.key]: e.target.value
+                      }))}
+                    />
+                  </div>
+                ))}
+                
+                {/* Sites management for Site In-charge */}
+                {title === 'Site In-charge' && (
+                  <SitesManagementTable 
+                    sites={sites}
+                    addSite={addSite}
+                    removeSite={removeSite}
+                    updateSite={updateSite}
+                  />
+                )}
+                
+                {/* Advanced fields for Items */}
+                {hasAdvancedFields && (
+                  <>
+                    {/* Category - Single Select */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-category">Category</Label>
+                      <Select value={newCategory} onValueChange={setNewCategory}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem 
+                              key={category.id || category.category_id} 
+                              value={String(category.id || category.category_id)}
+                            >
+                              {category.category || category.category_name || category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Group Name - Single Select */}
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-group">Group Name</Label>
+                      <Select value={selectedGroup} onValueChange={setSelectedGroup}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a group (optional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groups.map((group) => (
+                            <SelectItem 
+                              key={group.id || group.group_id} 
+                              value={String(group.id || group.group_id)}
+                            >
+                              {group.group_name || group.groupName || group.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {/* Combined Models, Brands, Types Table */}
+                    <CombinedRowsTable />
+                  </>
+                )}
+                {/* Category field - exempt Categories, Site In-charge, Groups, and Items (Items has advanced fields) */}
+                {!['Categories', 'Site In-charge', 'Groups', 'Items'].includes(title) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-category">Category</Label>
+                    <Select value={newCategory} onValueChange={setNewCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((category) => (
+                          <SelectItem 
+                            key={category.id || category.category_id} 
+                            value={String(category.id || category.category_id)}
+                          >
+                            {category.category || category.category_name || category.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setEditModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdate} disabled={saving || !newName.trim()}>
+                  {saving ? 'Updating...' : 'Update'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </CardHeader>
       <CardContent>
@@ -562,6 +1000,9 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 <TableRow>
                   <TableHead className="w-24">ID</TableHead>
                   <TableHead>Name</TableHead>
+                  {title === 'Site In-charge' && (
+                    <TableHead className="w-32">Mobile Number</TableHead>
+                  )}
                   <TableHead className="w-12 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -573,6 +1014,9 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                     <TableRow key={id}>
                       <TableCell>{id}</TableCell>
                       <TableCell>{name}</TableCell>
+                      {title === 'Site In-charge' && (
+                        <TableCell>{it.mobileNumber || '-'}</TableCell>
+                      )}
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -581,7 +1025,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleRename(it)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(it)}>Edit</DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(it)}>Delete</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -591,7 +1035,7 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 })}
                 {pageItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-sm text-gray-500 text-center">No records</TableCell>
+                    <TableCell colSpan={title === 'Site In-charge' ? 4 : 3} className="text-sm text-gray-500 text-center">No records</TableCell>
                   </TableRow>
                 )}
               </TableBody>
@@ -679,14 +1123,14 @@ export default function Catalogs() {
               title="Site In-charge" 
               apiFn={() => purchaseOrderService.getAllSiteIncharges()} 
               resourcePath={'/site_incharge'} 
-              nameKeyCandidates={["name", "site_incharge_name"]} 
-              idKeyCandidates={["id","site_incharge_id"]}
+              nameKeyCandidates={["siteEngineer", "name"]} 
+              idKeyCandidates={["id"]}
               customFields={[
                 {
-                  key: 'email',
-                  label: 'Email',
-                  type: 'email',
-                  placeholder: 'Enter email address...'
+                  key: 'mobileNumber',
+                  label: 'Mobile Number',
+                  type: 'tel',
+                  placeholder: 'Enter mobile number...'
                 }
               ]}
             />

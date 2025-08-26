@@ -61,7 +61,7 @@ const generateProjectUsageData = () => {
       projectCode: `PRJ-${3000 + i}`,
       projectName: `Project ${i}`,
       itemsUsed: Math.floor(Math.random() * 50) + 5,
-      totalCost: `$${(Math.random() * 10000 + 1000).toFixed(2)}`,
+      totalCost: `₹${(Math.random() * 10000 + 1000).toFixed(2)}`,
       startDate: new Date(2024, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1).toLocaleDateString(),
       status: ['Active', 'Completed', 'On Hold'][Math.floor(Math.random() * 3)]
     });

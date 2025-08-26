@@ -41,50 +41,86 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
   const [searchItem, setSearchItem] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
 
-  // Memoized filter helpers with lazy loading (10 items max)
+  // Memoized filter helpers with lazy loading (10 items max) and category-based filtering
   const filteredModels = useMemo(() => {
     const q = searchModel.trim().toLowerCase();
-    const items = dropdownOptions.models || [];
+    let items = dropdownOptions.models || [];
+    
+    // Filter by category first if category is selected
+    if (itemForm.category) {
+      items = items.filter(m => 
+        (m.category_id || m.categoryId)?.toString() === itemForm.category
+      );
+    }
+    
+    // Then filter by search query
     if (!q) return items.slice(0, 10);
     return items
       .filter((m) =>
         String(m.model || m.model_name || m.name || m.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.models, searchModel]);
+  }, [dropdownOptions.models, searchModel, itemForm.category]);
   
   const filteredBrands = useMemo(() => {
     const q = searchBrand.trim().toLowerCase();
-    const items = dropdownOptions.brands || [];
+    let items = dropdownOptions.brands || [];
+    
+    // Filter by category first if category is selected
+    if (itemForm.category) {
+      items = items.filter(b => 
+        (b.category_id || b.categoryId)?.toString() === itemForm.category
+      );
+    }
+    
+    // Then filter by search query
     if (!q) return items.slice(0, 10);
     return items
       .filter((b) =>
         String(b.brand || b.brand_name || b.name || b.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.brands, searchBrand]);
+  }, [dropdownOptions.brands, searchBrand, itemForm.category]);
   
   const filteredTypes = useMemo(() => {
     const q = searchType.trim().toLowerCase();
-    const items = dropdownOptions.types || [];
+    let items = dropdownOptions.types || [];
+    
+    // Filter by category first if category is selected
+    if (itemForm.category) {
+      items = items.filter(t => 
+        (t.category_id || t.categoryId)?.toString() === itemForm.category
+      );
+    }
+    
+    // Then filter by search query
     if (!q) return items.slice(0, 10);
     return items
       .filter((t) =>
         String(t.typeColor || t.type_name || t.name || t.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.types, searchType]);
+  }, [dropdownOptions.types, searchType, itemForm.category]);
   
   const filteredItems = useMemo(() => {
     const q = searchItem.trim().toLowerCase();
-    const items = dropdownOptions.itemNames || [];
+    let items = dropdownOptions.itemNames || [];
+    
+    // Filter by category first if category is selected
+    if (itemForm.category) {
+      items = items.filter(i => 
+        (i.category_id || i.categoryId)?.toString() === itemForm.category
+      );
+    }
+    
+    // Then filter by search query
     if (!q) return items.slice(0, 10);
     return items
       .filter((i) =>
         String(i.itemName || i.item_name || i.name || i.id || '').toLowerCase().includes(q)
       )
       .slice(0, 10);
-  }, [dropdownOptions.itemNames, searchItem]);
+  }, [dropdownOptions.itemNames, searchItem, itemForm.category]);
   
   const filteredCategories = useMemo(() => {
     const q = searchCategory.trim().toLowerCase();
@@ -129,16 +165,45 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
 
   const handleAddItem = () => {
     if (itemForm.selectedItemId) {
+      // Find the selected objects to get both IDs and display names
+      const selectedModel = dropdownOptions.models.find(m => 
+        (m.id || m.model_id)?.toString() === itemForm.model
+      );
+      const selectedBrand = dropdownOptions.brands.find(b => 
+        (b.id || b.brand_id)?.toString() === itemForm.brand
+      );
+      const selectedType = dropdownOptions.types.find(t => 
+        (t.id || t.type_id)?.toString() === itemForm.type
+      );
+      const selectedCategory = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === itemForm.category
+      );
+      const selectedItem = dropdownOptions.itemNames.find(i => 
+        (i.id || i.item_id)?.toString() === itemForm.selectedItemId
+      );
+
       const newItem = {
+        // Main item info
         id: parseInt(itemForm.selectedItemId),
-        model: itemForm.model,
-        brand: itemForm.brand,
-        item: itemForm.item,
+        item: selectedItem?.itemName || selectedItem?.item_name || itemForm.item,
         quantity: parseInt(itemForm.quantity) || 1,
-        type: itemForm.type,
-        category: itemForm.category,
         
+        // API required ID fields
+        item_id: parseInt(itemForm.selectedItemId),
+        model_id: selectedModel ? parseInt(selectedModel.id || selectedModel.model_id) : null,
+        brand_id: selectedBrand ? parseInt(selectedBrand.id || selectedBrand.brand_id) : null,
+        type_id: selectedType ? parseInt(selectedType.id || selectedType.type_id) : null,
+        category_id: selectedCategory ? parseInt(selectedCategory.id || selectedCategory.category_id) : null,
+        
+        // Display names for UI
+        model: selectedModel?.model || selectedModel?.model_name || '',
+        brand: selectedBrand?.brand || selectedBrand?.brand_name || '',
+        type: selectedType?.typeColor || selectedType?.type_name || '',
+        category: selectedCategory?.category || selectedCategory?.category_name || '',
       };
+      
+      console.log('SidePanel adding item with proper IDs:', newItem);
+      
       setItemsList(prev => [...prev, newItem]);
       onAddItem(newItem);
       setItemForm({ 
@@ -151,6 +216,34 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
         category: '' 
       });
     }
+  };
+
+  // Handle Enter key press
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && itemForm.selectedItemId) {
+      e.preventDefault();
+      handleAddItem();
+    }
+  };
+
+  // Handle category change - reset other fields when category changes
+  const handleCategoryChange = (value) => {
+    setItemForm(prev => ({ 
+      ...prev, 
+      category: value,
+      // Reset other fields when category changes
+      selectedItemId: '',
+      model: '',
+      brand: '',
+      type: '',
+      item: ''
+    }));
+    
+    // Clear search terms for dependent fields
+    setSearchModel('');
+    setSearchBrand('');
+    setSearchType('');
+    setSearchItem('');
   };
 
   // Delete functions
@@ -281,7 +374,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                   <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Category</label>
                   <Select
                     value={itemForm.category}
-                    onValueChange={(value) => setItemForm(prev => ({ ...prev, category: value }))}
+                    onValueChange={handleCategoryChange}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
                       <SelectValue placeholder="Select category" />
@@ -299,8 +392,8 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                         />
                       </div>
                       {filteredCategories.map((category) => (
-                        <SelectItem key={category.id || category.category_id} value={category.category || category.id?.toString()}>
-                          {category.category || `Category ${category.id}`}
+                        <SelectItem key={category.id || category.category_id} value={(category.id || category.category_id)?.toString()}>
+                          {category.category || category.category_name || `Category ${category.id}`}
                         </SelectItem>
                       ))}
                       {filteredCategories.length === 0 && (
@@ -317,7 +410,12 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     disabled={loading.models}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder={loading.models ? "Loading models..." : errors.models ? "Error loading models" : "Select model"} />
+                      <SelectValue placeholder={
+                        loading.models ? "Loading models..." : 
+                        errors.models ? "Error loading models" : 
+                        itemForm.category ? "Select model (filtered by category)" : 
+                        "Select model"
+                      } />
                     </SelectTrigger>
                     <SelectContent>
                       <div className="p-2 border-b">
@@ -334,7 +432,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       {filteredModels.map((model) => (
                         <SelectItem 
                           key={model.id || model.model_id} 
-                          value={model.model || model.model_name || `model_${model.id}`}
+                          value={(model.id || model.model_id)?.toString()}
                         >
                           {model.model || model.model_name || `Model ${model.id}`}
                         </SelectItem>
@@ -353,7 +451,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     onValueChange={(value) => setItemForm(prev => ({ ...prev, brand: value }))}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select brand" />
+                      <SelectValue placeholder={itemForm.category ? "Select brand (filtered by category)" : "Select brand"} />
                     </SelectTrigger>
                     <SelectContent>
                       <div className="p-2 border-b">
@@ -370,7 +468,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       {filteredBrands.map((brand) => (
                         <SelectItem 
                           key={brand.id || brand.brand_id} 
-                          value={brand.brand || brand.brand_name || `brand_${brand.id}`}
+                          value={(brand.id || brand.brand_id)?.toString()}
                         >
                           {brand.brand || brand.brand_name || `Brand ${brand.id}`}
                         </SelectItem>
@@ -396,7 +494,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     }}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select item" />
+                      <SelectValue placeholder={itemForm.category ? "Select item (filtered by category)" : "Select item"} />
                     </SelectTrigger>
                     <SelectContent>
                       <div className="p-2 border-b">
@@ -432,6 +530,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     placeholder="1"
                     value={itemForm.quantity}
                     onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
+                    onKeyDown={handleKeyDown}
                     className="h-8 text-xs border-gray-300 bg-white flex-1"
                   />
                 </div>
@@ -442,7 +541,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                     onValueChange={(value) => setItemForm(prev => ({ ...prev, type: value }))}
                   >
                     <SelectTrigger className="h-8 text-xs border-gray-300 bg-white flex-1">
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue placeholder={itemForm.category ? "Select type (filtered by category)" : "Select type"} />
                     </SelectTrigger>
                     <SelectContent>
                       <div className="p-2 border-b">
@@ -459,7 +558,7 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       {filteredTypes.map((type) => (
                         <SelectItem 
                           key={type.id || type.type_id} 
-                          value={type.typeColor || type.type_name || `type_${type.id}`}
+                          value={(type.id || type.type_id)?.toString()}
                         >
                           {type.typeColor || type.type_name || `Type ${type.id}`}
                         </SelectItem>
@@ -469,18 +568,6 @@ export function SidePanel({ isOpen, onClose, onAddItem }) {
                       )}
                     </SelectContent>
                   </Select>
-                </div>
-                {/* Quantity */}
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm font-thin text-gray-600 w-16 flex-shrink-0">Quantity</label>
-                  <Input
-                    type="number"
-                    min="1"
-                    placeholder="1"
-                    value={itemForm.quantity}
-                    onChange={(e) => setItemForm(prev => ({ ...prev, quantity: e.target.value }))}
-                    className="h-8 text-xs border-gray-300 bg-white flex-1"
-                  />
                 </div>
                 
               </div>
