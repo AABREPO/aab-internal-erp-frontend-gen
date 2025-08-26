@@ -1422,14 +1422,318 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                   <TableBody>
                     {selectedItems.map((item, index) => (
                       <TableRow key={index}>
-                        <TableCell>{item.category || 'N/A'}</TableCell>
-                        <TableCell>{item.item || 'N/A'}</TableCell>
-                        <TableCell>{item.model || 'N/A'}</TableCell>
-                        <TableCell>{item.brand || 'N/A'}</TableCell>
-                        <TableCell>{item.type || 'N/A'}</TableCell>
-                        <TableCell>{`₹${(item.unitPrice || 0).toFixed(2)}`}</TableCell>
-                        <TableCell>{item.quantity || 1}</TableCell>
-                        <TableCell>{`₹${(item.total || 0).toFixed(2)}`}</TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.category || 'N/A'
+                          ) : (
+                            <Select
+                              value={item.category_id?.toString() || ''}
+                              onValueChange={(value) => {
+                                const selectedCategory = dropdownOptions.categories.find(c => 
+                                  (c.id || c.category_id)?.toString() === value
+                                );
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return { 
+                                      ...selectedItem, 
+                                      category: selectedCategory?.category || selectedCategory?.category_name || '',
+                                      category_id: parseInt(value)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Search categories..."
+                                    value={inlineSearchStates.category}
+                                    onChange={(e) => setInlineSearchStates(prev => ({ ...prev, category: e.target.value }))}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                {getFilteredCategories(inlineSearchStates.category).map((category) => (
+                                  <SelectItem key={category.id || category.category_id} value={(category.id || category.category_id)?.toString()}>
+                                    {category.category || category.category_name || category.name || `Category ${category.id}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.item || 'N/A'
+                          ) : (
+                            <Select
+                              value={item.item_id?.toString() || ''}
+                              onValueChange={(value) => {
+                                const selectedItem = dropdownOptions.itemNames.find(i => 
+                                  (i.id || i.item_id)?.toString() === value
+                                );
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return { 
+                                      ...selectedItem, 
+                                      item: selectedItem?.itemName || selectedItem?.item_name || '',
+                                      item_id: parseInt(value)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="Select item" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Search items..."
+                                    value={inlineSearchStates.item}
+                                    onChange={(e) => setInlineSearchStates(prev => ({ ...prev, item: e.target.value }))}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                {getFilteredItems(inlineSearchStates.item, item.category_id).map((availableItem) => (
+                                  <SelectItem key={availableItem.id || availableItem.item_id} value={(availableItem.id || availableItem.item_id)?.toString()}>
+                                    {availableItem.itemName || availableItem.item_name || availableItem.name || `Item ${availableItem.id}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.model || 'N/A'
+                          ) : (
+                            <Select
+                              value={item.model_id?.toString() || ''}
+                              onValueChange={(value) => {
+                                const selectedModel = dropdownOptions.models.find(m => 
+                                  (m.id || m.model_id)?.toString() === value
+                                );
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return { 
+                                      ...selectedItem, 
+                                      model: selectedModel?.model || selectedModel?.model_name || '',
+                                      model_id: parseInt(value)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="Select model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Search models..."
+                                    value={inlineSearchStates.model}
+                                    onChange={(e) => setInlineSearchStates(prev => ({ ...prev, model: e.target.value }))}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                {getFilteredModels(inlineSearchStates.model, item.category_id).map((availableModel) => (
+                                  <SelectItem key={availableModel.id || availableModel.model_id} value={(availableModel.id || availableModel.model_id)?.toString()}>
+                                    {availableModel.model || availableModel.model_name || availableModel.name || `Model ${availableModel.id}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.brand || 'N/A'
+                          ) : (
+                            <Select
+                              value={item.brand_id?.toString() || ''}
+                              onValueChange={(value) => {
+                                const selectedBrand = dropdownOptions.brands.find(b => 
+                                  (b.id || b.brand_id)?.toString() === value
+                                );
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return { 
+                                      ...selectedItem, 
+                                      brand: selectedBrand?.brand || selectedBrand?.brand_name || '',
+                                      brand_id: parseInt(value)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="Select brand" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Search brands..."
+                                    value={inlineSearchStates.brand}
+                                    onChange={(e) => setInlineSearchStates(prev => ({ ...prev, brand: e.target.value }))}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                {getFilteredBrands(inlineSearchStates.brand, item.category_id).map((availableBrand) => (
+                                  <SelectItem key={availableBrand.id || availableBrand.brand_id} value={(availableBrand.id || availableBrand.brand_id)?.toString()}>
+                                    {availableBrand.brand || availableBrand.brand_name || availableBrand.name || `Brand ${availableBrand.id}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.type || 'N/A'
+                          ) : (
+                            <Select
+                              value={item.type_id?.toString() || ''}
+                              onValueChange={(value) => {
+                                const selectedType = dropdownOptions.types.find(t => 
+                                  (t.id || t.type_id)?.toString() === value
+                                );
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return { 
+                                      ...selectedItem, 
+                                      type: selectedType?.typeColor || selectedType?.type_name || '',
+                                      type_id: parseInt(value)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <div className="p-2 border-b">
+                                  <Input
+                                    placeholder="Search types..."
+                                    value={inlineSearchStates.type}
+                                    onChange={(e) => setInlineSearchStates(prev => ({ ...prev, type: e.target.value }))}
+                                    className="h-8 text-xs"
+                                  />
+                                </div>
+                                {getFilteredTypes(inlineSearchStates.type, item.category_id).map((availableType) => (
+                                  <SelectItem key={availableType.id || availableType.type_id} value={(availableType.id || availableType.type_id)?.toString()}>
+                                    {availableType.typeColor || availableType.type_name || availableType.name || `Type ${availableType.id}`}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            `₹${(item.unitPrice || 0).toFixed(2)}`
+                          ) : (
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unitPrice || 0}
+                              onChange={(e) => {
+                                const price = parseFloat(e.target.value) || 0;
+                                const updatedItems = selectedItems.map((selectedItem, i) => {
+                                  if (i === index) {
+                                    return {
+                                      ...selectedItem,
+                                      unitPrice: price,
+                                      total: price * (selectedItem.quantity || 1)
+                                    };
+                                  }
+                                  return selectedItem;
+                                });
+                                setSelectedItems(updatedItems);
+                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                              }}
+                              className="w-20"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isViewMode || editingItemIndex !== index ? (
+                            item.quantity || 1
+                          ) : (
+                            <Input
+                              type="number"
+                              min="1"
+                              value={item.quantity || 1}
+                              onChange={(e) => handleItemQuantityChange(index, e.target.value)}
+                              className="w-20"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell>₹{(item.total || 0).toFixed(2)}</TableCell>
+                        {!isViewMode && (
+                          <TableCell>
+                            {editingItemIndex === index ? (
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSaveEdit(index)}
+                                  className="h-8 px-2"
+                                >
+                                  Save
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleCancelEdit}
+                                  className="h-8 px-2"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem onClick={() => handleStartEdit(index)}>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => handleRemoveSelectedItem(index)}
+                                    className="text-red-600"
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>
