@@ -844,6 +844,23 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
         itemNames: itemNamesResult.success ? itemNamesResult.data.length : 0
       });
 
+      // Debug: Log sample data structure for each type
+      if (categoriesResult.success && categoriesResult.data.length > 0) {
+        console.log('Sample category structure:', categoriesResult.data[0]);
+      }
+      if (modelsResult.success && modelsResult.data.length > 0) {
+        console.log('Sample model structure:', modelsResult.data[0]);
+      }
+      if (brandsResult.success && brandsResult.data.length > 0) {
+        console.log('Sample brand structure:', brandsResult.data[0]);
+      }
+      if (typesResult.success && typesResult.data.length > 0) {
+        console.log('Sample type structure:', typesResult.data[0]);
+      }
+      if (itemNamesResult.success && itemNamesResult.data.length > 0) {
+        console.log('Sample item structure:', itemNamesResult.data[0]);
+      }
+
     } catch (error) {
       console.error('Failed to load dropdown options:', error);
     } finally {
@@ -868,14 +885,30 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     
     // Filter by category if provided
     if (categoryId) {
-      items = items.filter(item => {
-        const itemCategory = item.category || item.category_name || item.categoryName;
-        const category = dropdownOptions.categories.find(c => 
-          (c.id || c.category_id)?.toString() === categoryId?.toString()
-        );
-        const categoryName = category?.category || category?.category_name;
-        return itemCategory?.toString() === categoryName?.toString();
+      // Find the category name from the ID
+      const category = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === categoryId?.toString()
+      );
+      const categoryName = category?.category || category?.category_name;
+      
+      console.log('Filtering items by category:', {
+        categoryId,
+        category,
+        categoryName,
+        totalItems: items.length
       });
+      
+      if (categoryName) {
+        items = items.filter(item => {
+          const itemCategory = item.category || item.category_name || item.categoryName;
+          const matches = itemCategory?.toString() === categoryName?.toString();
+          if (matches) {
+            console.log('Item matches category:', item, 'category field:', itemCategory);
+          }
+          return matches;
+        });
+        console.log(`Filtered items for category ${categoryName}:`, items.length, 'items');
+      }
     }
     
     // Filter by search term
@@ -893,14 +926,30 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     
     // Filter by category if provided
     if (categoryId) {
-      items = items.filter(item => {
-        const itemCategory = item.category || item.category_name || item.categoryName;
-        const category = dropdownOptions.categories.find(c => 
-          (c.id || c.category_id)?.toString() === categoryId?.toString()
-        );
-        const categoryName = category?.category || category?.category_name;
-        return itemCategory?.toString() === categoryName?.toString();
+      // Find the category name from the ID
+      const category = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === categoryId?.toString()
+      );
+      const categoryName = category?.category || category?.category_name;
+      
+      console.log('Filtering models by category:', {
+        categoryId,
+        category,
+        categoryName,
+        totalModels: items.length
       });
+      
+      if (categoryName) {
+        items = items.filter(item => {
+          const itemCategory = item.category || item.category_name || item.categoryName;
+          const matches = itemCategory?.toString() === categoryName?.toString();
+          if (matches) {
+            console.log('Model matches category:', item, 'category field:', itemCategory);
+          }
+          return matches;
+        });
+        console.log(`Filtered models for category ${categoryName}:`, items.length, 'items');
+      }
     }
     
     // Filter by search term
@@ -918,14 +967,30 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     
     // Filter by category if provided
     if (categoryId) {
-      items = items.filter(item => {
-        const itemCategory = item.category || item.category_name || item.categoryName;
-        const category = dropdownOptions.categories.find(c => 
-          (c.id || c.category_id)?.toString() === categoryId?.toString()
-        );
-        const categoryName = category?.category || category?.category_name;
-        return itemCategory?.toString() === categoryName?.toString();
+      // Find the category name from the ID
+      const category = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === categoryId?.toString()
+      );
+      const categoryName = category?.category || category?.category_name;
+      
+      console.log('Filtering brands by category:', {
+        categoryId,
+        category,
+        categoryName,
+        totalBrands: items.length
       });
+      
+      if (categoryName) {
+        items = items.filter(item => {
+          const itemCategory = item.category || item.category_name || item.categoryName;
+          const matches = itemCategory?.toString() === categoryName?.toString();
+          if (matches) {
+            console.log('Brand matches category:', item, 'category field:', itemCategory);
+          }
+          return matches;
+        });
+        console.log(`Filtered brands for category ${categoryName}:`, items.length, 'items');
+      }
     }
     
     // Filter by search term
@@ -943,14 +1008,30 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     
     // Filter by category if provided
     if (categoryId) {
-      items = items.filter(item => {
-        const itemCategory = item.category || item.category_name || item.categoryName;
-        const category = dropdownOptions.categories.find(c => 
-          (c.id || c.category_id)?.toString() === categoryId?.toString()
-        );
-        const categoryName = category?.category || category?.category_name;
-        return itemCategory?.toString() === categoryName?.toString();
+      // Find the category name from the ID
+      const category = dropdownOptions.categories.find(c => 
+        (c.id || c.category_id)?.toString() === categoryId?.toString()
+      );
+      const categoryName = category?.category || category?.category_name;
+      
+      console.log('Filtering types by category:', {
+        categoryId,
+        category,
+        categoryName,
+        totalTypes: items.length
       });
+      
+      if (categoryName) {
+        items = items.filter(item => {
+          const itemCategory = item.category || item.category_name || item.categoryName;
+          const matches = itemCategory?.toString() === categoryName?.toString();
+          if (matches) {
+            console.log('Type matches category:', item, 'category field:', itemCategory);
+          }
+          return matches;
+        });
+        console.log(`Filtered types for category ${categoryName}:`, items.length, 'items');
+      }
     }
     
     // Filter by search term

@@ -1000,6 +1000,9 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 <TableRow>
                   <TableHead className="w-24">ID</TableHead>
                   <TableHead>Name</TableHead>
+                  {title !== 'Categories' && (
+                    <TableHead>Category</TableHead>
+                  )}
                   {title === 'Site In-charge' && (
                     <TableHead className="w-32">Mobile Number</TableHead>
                   )}
@@ -1014,6 +1017,9 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                     <TableRow key={id}>
                       <TableCell>{id}</TableCell>
                       <TableCell>{name}</TableCell>
+                      {title !== 'Categories' && (
+                        <TableCell>{it.category || it.category_name || it.categoryName || '-'}</TableCell>
+                      )}
                       {title === 'Site In-charge' && (
                         <TableCell>{it.mobileNumber || '-'}</TableCell>
                       )}
@@ -1035,7 +1041,11 @@ function CatalogTab({ title, apiFn, nameKeyCandidates, idKeyCandidates, resource
                 })}
                 {pageItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={title === 'Site In-charge' ? 4 : 3} className="text-sm text-gray-500 text-center">No records</TableCell>
+                    <TableCell colSpan={
+                      title === 'Site In-charge' ? 5 : 
+                      title === 'Categories' ? 3 : 
+                      4
+                    } className="text-sm text-gray-500 text-center">No records</TableCell>
                   </TableRow>
                 )}
               </TableBody>

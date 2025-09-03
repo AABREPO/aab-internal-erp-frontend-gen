@@ -36,10 +36,70 @@ export function PurchaseOrderList() {
   const [filterSearchTerm, setFilterSearchTerm] = useState('');
   const [sortField, setSortField] = useState(''); // Current sort field
   const [sortDirection, setSortDirection] = useState(''); // Current sort direction
+  
+  // New state for vendor and site incharge mappings
+  const [vendors, setVendors] = useState([]);
+  const [siteIncharges, setSiteIncharges] = useState([]);
+  const [vendorMap, setVendorMap] = useState({});
+  const [siteInchargeMap, setSiteInchargeMap] = useState({});
 
   useEffect(() => {
     loadPurchaseOrders();
+    loadVendorsAndSiteIncharges();
   }, []);
+
+  // Load vendor and site incharge data to create name mappings
+  const loadVendorsAndSiteIncharges = async () => {
+    try {
+      // Load vendors
+      const vendorsResult = await purchaseOrderService.getAllVendorNames();
+      if (vendorsResult.success && Array.isArray(vendorsResult.data)) {
+        setVendors(vendorsResult.data);
+        // Create vendor ID to name mapping
+        const vendorMapping = {};
+        vendorsResult.data.forEach(vendor => {
+          const vendorId = vendor.id || vendor.vendor_id;
+          const vendorName = vendor.vendorName || vendor.vendor_name || vendor.name;
+          if (vendorId && vendorName) {
+            vendorMapping[vendorId] = vendorName;
+          }
+        });
+        setVendorMap(vendorMapping);
+        console.log('Vendor mapping created:', vendorMapping);
+      }
+
+      // Load site incharges
+      const siteInchargesResult = await purchaseOrderService.getAllSiteIncharges();
+      if (siteInchargesResult.success && Array.isArray(siteInchargesResult.data)) {
+        setSiteIncharges(siteInchargesResult.data);
+        // Create site incharge ID to name mapping
+        const siteInchargeMapping = {};
+        siteInchargesResult.data.forEach(siteIncharge => {
+          const siteInchargeId = siteIncharge.id;
+          const siteInchargeName = siteIncharge.siteEngineer || siteIncharge.name;
+          if (siteInchargeId && siteInchargeName) {
+            siteInchargeMapping[siteInchargeId] = siteInchargeName;
+          }
+        });
+        setSiteInchargeMap(siteInchargeMapping);
+        console.log('Site Incharge mapping created:', siteInchargeMapping);
+      }
+    } catch (error) {
+      console.error('Error loading vendor/site incharge data:', error);
+    }
+  };
+
+  // Helper function to get vendor name by ID
+  const getVendorName = (vendorId) => {
+    if (!vendorId) return '-';
+    return vendorMap[vendorId] || `Vendor ${vendorId}`;
+  };
+
+  // Helper function to get site incharge name by ID
+  const getSiteInchargeName = (siteInchargeId) => {
+    if (!siteInchargeId) return '-';
+    return siteInchargeMap[siteInchargeId] || `Site Incharge ${siteInchargeId}`;
+  };
 
   const loadPurchaseOrders = async (searchQuery = '', sortParams = null, filterParams = null) => {
     try {
@@ -197,13 +257,13 @@ export function PurchaseOrderList() {
       let value;
       switch (field) {
         case 'vendor':
-          value = po.vendor_name;
+          value = getVendorName(po.vendor_id);
           break;
         case 'client':
           value = po.client_name;
           break;
         case 'site_incharge':
-          value = po.site_incharge_name;
+          value = getSiteInchargeName(po.site_incharge_id);
           break;
         case 'date':
           if (po.date) {
@@ -314,16 +374,16 @@ export function PurchaseOrderList() {
           bValue = new Date(b.date || 0);
           return isAsc ? aValue - bValue : bValue - aValue;
         case 'vendor':
-          aValue = a.vendor_name || '';
-          bValue = b.vendor_name || '';
+          aValue = getVendorName(a.vendor_id) || '';
+          bValue = getVendorName(b.vendor_id) || '';
           break;
         case 'client':
           aValue = a.client_name || '';
           bValue = b.client_name || '';
           break;
         case 'site_incharge':
-          aValue = a.site_incharge_name || '';
-          bValue = b.site_incharge_name || '';
+          aValue = getSiteInchargeName(a.site_incharge_id) || '';
+          bValue = getSiteInchargeName(b.site_incharge_id) || '';
           break;
         case 'mobile':
           aValue = a.site_incharge_mobile_number || '';
@@ -551,7 +611,7 @@ export function PurchaseOrderList() {
                           </div>
                           <div>
                             <div className="text-gray-500">Vendor</div>
-                            <div className="font-medium">{po.vendor_name || `Vendor ${po.vendor_id}`}</div>
+                            <div className="font-medium">{getVendorName(po.vendor_id)}</div>
                           </div>
                           <div>
                             <div className="text-gray-500">Client</div>
@@ -559,7 +619,7 @@ export function PurchaseOrderList() {
                           </div>
                           <div>
                             <div className="text-gray-500">Site Incharge</div>
-                            <div className="font-medium">{po.site_incharge_name || `Site Incharge ${po.site_incharge_id}`}</div>
+                            <div className="font-medium">{getSiteInchargeName(po.site_incharge_id)}</div>
                           </div>
                           <div>
                             <div className="text-gray-500">Mobile</div>
@@ -657,13 +717,13 @@ export function PurchaseOrderList() {
                         </TableCell>
                         <TableCell>{formatDate(po.date)}</TableCell>
                         <TableCell>
-                          <p className="font-medium">{po.vendor_name || `Vendor ${po.vendor_id}`}</p>
+                          <p className="font-medium">{getVendorName(po.vendor_id)}</p>
                         </TableCell>
                         <TableCell>
                           <p className="font-medium">{po.client_name || `Client ${po.client_id}`}</p>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium">{po.site_incharge_name || `Site Incharge ${po.site_incharge_id}`}</p>
+                          <p className="font-medium">{getSiteInchargeName(po.site_incharge_id)}</p>
                         </TableCell>
                         <TableCell>{po.site_incharge_mobile_number}</TableCell>
                         <TableCell>
