@@ -1139,7 +1139,7 @@ export default function Catalogs() {
             <CatalogTab 
               title="Groups" 
               apiFn={() => purchaseOrderService.getAllGroups()} 
-              resourcePath={'/po_group'} 
+              resourcePath={'/group_name'} 
               nameKeyCandidates={["group_name", "groupName", "name"]} 
               idKeyCandidates={["id","group_id"]}
             />

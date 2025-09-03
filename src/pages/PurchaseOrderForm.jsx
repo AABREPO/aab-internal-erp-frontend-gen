@@ -69,7 +69,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     created_by: 'admin',
     created_date_time: '',
     delete_status: false,
-    purchase_table: [],
+    purchaseTable: [],
     po_notes: '',
     
     // UI Helper fields (not sent to API)
@@ -243,7 +243,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               created_by: data.created_by,
               created_date_time: data.created_date_time,
               delete_status: data.delete_status,
-              purchase_table: data.purchase_table || [],
+              purchaseTable: data.purchaseTable || [],
               po_notes: data.po_notes,
               
               // UI Helper fields - use names directly from PO detail API
@@ -254,7 +254,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
             // Normalize and load items into selectedItems for view/edit table rendering
             try {
-              const apiItems = Array.isArray(data.purchase_table) ? data.purchase_table : [];
+              const apiItems = Array.isArray(data.purchaseTable) ? data.purchaseTable : [];
 
               // Load lookups to resolve names from ids
               const lookups = await loadCatalogLookups();
@@ -297,7 +297,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               });
               setSelectedItems(normalized);
             } catch (mapErr) {
-              console.warn('Failed to normalize purchase_table for display:', mapErr);
+              console.warn('Failed to normalize purchaseTable for display:', mapErr);
               setSelectedItems([]);
             }
           } else {
@@ -498,7 +498,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setSelectedItems(prev => [...prev, newItem]);
     setFormData(prev => ({
       ...prev,
-      purchase_table: [...prev.purchase_table, newItem]
+      purchaseTable: [...prev.purchaseTable, newItem]
     }));
   };
 
@@ -508,7 +508,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setSelectedItems(prev => prev.filter((_, i) => i !== index));
     setFormData(prev => ({
       ...prev,
-      purchase_table: prev.purchase_table.filter((_, i) => i !== index)
+      purchaseTable: prev.purchaseTable.filter((_, i) => i !== index)
     }));
   };
 
@@ -541,7 +541,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setSelectedItems(updatedItems);
     setFormData(prev => ({
       ...prev,
-      purchase_table: updatedItems
+      purchaseTable: updatedItems
     }));
   };
 
@@ -583,7 +583,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
         date: formData.date,
         site_incharge_mobile_number: formData.site_incharge_mobile_number,
         eno: formData.eno,
-        purchase_table: purchaseTable
+        purchaseTable: purchaseTable
       };
 
       console.log('Sending API payload:', apiPayload);
@@ -594,7 +594,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
         response = await coreApiClient.put(`/purchase_orders/edit/${id}`, apiPayload);
       } else {
         // Use POST method for create
-        response = await coreApiClient.post('/purchase_orders/create', apiPayload);
+        response = await coreApiClient.post('/purchase_orders/save', apiPayload);
       }
 
       // Consider HTTP 200/201 as success
@@ -1443,7 +1443,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
@@ -1488,7 +1488,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
@@ -1533,7 +1533,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
@@ -1578,7 +1578,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
@@ -1623,7 +1623,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
@@ -1669,7 +1669,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                                   return selectedItem;
                                 });
                                 setSelectedItems(updatedItems);
-                                setFormData(prev => ({ ...prev, purchase_table: updatedItems }));
+                                setFormData(prev => ({ ...prev, purchaseTable: updatedItems }));
                               }}
                               className="w-20"
                             />

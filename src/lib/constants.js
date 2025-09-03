@@ -19,7 +19,7 @@ export const CORE_API_ENDPOINTS = {
   PURCHASE_ORDERS: '/purchase_orders',
   GET_ALL_PURCHASE_ORDERS: '/purchase_orders/getAll',
   GET_PURCHASE_ORDER_DETAILS: '/purchase_orders/details',
-  CREATE_PURCHASE_ORDER: '/purchase_orders/create',
+  CREATE_PURCHASE_ORDER: '/purchase_orders/save',
   UPDATE_PURCHASE_ORDER: '/purchase_orders/edit',
   DELETE_PURCHASE_ORDER: '/purchase_orders/delete',
   // Add more core functionality endpoints as needed

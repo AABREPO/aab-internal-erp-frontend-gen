@@ -333,7 +333,7 @@ class PurchaseOrderService {
   // Get all groups
   async getAllGroups() {
     try {
-      const response = await coreApiClient.get('/po_group/getAll');
+      const response = await coreApiClient.get('/group_name/getAll');
       return {
         success: true,
         data: response.data,
@@ -493,7 +493,7 @@ class PurchaseOrderService {
       date: data.date,
       site_incharge_mobile_number: data.site_incharge_mobile_number,
       eno: data.eno,
-      purchase_table: (data.purchase_table || []).map(item => ({
+      purchaseTable: (data.purchaseTable || []).map(item => ({
         item_id: parseInt(item.item_id || item.itemId),
         category_id: parseInt(item.category_id || item.categoryId),
         model_id: parseInt(item.model_id || item.modelId),
