@@ -449,8 +449,8 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Generate PO number based on vendor
-  const generatePONumber = (vendorId, vendorName) => {
+  // Generate PO number based on vendor with sequential numbering
+  const generatePONumber = async (vendorId, vendorName) => {
     const currentYear = new Date().getFullYear();
     const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
     
@@ -469,23 +469,29 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       }
     }
     
-    // Generate unique sequence number 
-    // In real implementation, this should come from backend API to ensure uniqueness
-    // For now, using timestamp + random for better uniqueness
-    const timestamp = Date.now().toString().slice(-4);
-    const random = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');
-    const sequenceNumber = timestamp + random;
-    
-    // Different formats based on vendor (can be customized per vendor)
-    const formats = {
-      'default': `${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`,
-      'short': `${vendorPrefix}${currentYear.toString().slice(-2)}${currentMonth}${sequenceNumber}`,
-      'long': `PO-${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`
-    };
-    
-    // For now, use default format. In real implementation, 
-    // vendor-specific format preferences could be stored in backend
-    return formats.default;
+    try {
+      // Get the next sequential number for this vendor from backend
+      const response = await coreApiClient.get(`/purchase_orders/next-sequence/${vendorId}`);
+      let sequenceNumber;
+      
+      if (response?.data?.nextSequence) {
+        sequenceNumber = String(response.data.nextSequence).padStart(4, '0');
+        console.log(`Generated sequential PO number for vendor ${vendorId}: ${sequenceNumber}`);
+      } else {
+        // Fallback to 1 if no sequence found
+        sequenceNumber = '0001';
+        console.log(`No existing sequence found for vendor ${vendorId}, starting with 0001`);
+      }
+      
+      // Format: VENDOR_PREFIX-YYYY-MM-SEQUENCE
+      return `${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`;
+      
+    } catch (error) {
+      console.error('Failed to get next sequence number:', error);
+      // Fallback to timestamp-based number if API fails
+      const timestamp = Date.now().toString().slice(-4);
+      return `${vendorPrefix}-${currentYear}-${currentMonth}-${timestamp}`;
+    }
   };
 
   // Side panel handlers
@@ -1163,9 +1169,9 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
+                      onClick={async () => {
                         const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === formData.vendor_id);
-                        const newPONumber = generatePONumber(formData.vendor_id, selectedVendor?.vendorName || '');
+                        const newPONumber = await generatePONumber(formData.vendor_id, selectedVendor?.vendorName || '');
                         handleInputChange('eno', newPONumber);
                         console.log('Regenerated PO number:', newPONumber);
                       }}
@@ -1189,7 +1195,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                 ) : (
                   <Select 
                     value={formData.vendor_id} 
-                    onValueChange={(value) => {
+                    onValueChange={async (value) => {
                       const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
                       const vendorName = selectedVendor?.vendorName || '';
                       
@@ -1208,7 +1214,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                       
                       // Generate PO number when vendor is selected (create mode)
                       if (isCreateMode) {
-                        const newPONumber = generatePONumber(value, vendorName);
+                        const newPONumber = await generatePONumber(value, vendorName);
                         handleInputChange('eno', newPONumber);
                         console.log('Generated PO number for vendor:', { 
                           vendorId: value, 
@@ -1237,13 +1243,13 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                           placeholder="Search vendor..."
                           value={filterSearchVendor}
                           onChange={(e) => handleSearchChange(setFilterSearchVendor, e.target.value, 'vendor')}
-                          onKeyDown={(e) => handleKeyDown('vendor', e, filterVendors(vendors), (value) => {
+                          onKeyDown={(e) => handleKeyDown('vendor', e, filterVendors(vendors), async (value) => {
                             const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === value);
                             const vendorName = selectedVendor?.vendorName || '';
                             handleInputChange('vendor_id', value);
                             handleInputChange('vendor_name', vendorName);
                             if (isCreateMode) {
-                              const newPONumber = generatePONumber(value, vendorName);
+                              const newPONumber = await generatePONumber(value, vendorName);
                               handleInputChange('eno', newPONumber);
                               console.log('Generated PO number for vendor:', { 
                                 vendorId: value, 
