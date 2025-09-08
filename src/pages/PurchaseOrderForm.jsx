@@ -227,10 +227,36 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
           setLoading(true);
           setError(null);
           
+          // First check if we have PO details stored in sessionStorage (from PO list)
+          const storedPODetails = sessionStorage.getItem('poDetails');
+          let data;
+          
+          if (storedPODetails) {
+            try {
+              data = JSON.parse(storedPODetails);
+              console.log('Using stored PO details from sessionStorage:', data);
+              // Clear the stored data after using it
+              sessionStorage.removeItem('poDetails');
+            } catch (parseError) {
+              console.warn('Failed to parse stored PO details, falling back to API call:', parseError);
+              data = null;
+            }
+          }
+          
+          // If no stored data, fetch from API
+          if (!data) {
+            console.log('No stored PO details found, fetching from API...');
           const result = await purchaseOrderService.getPurchaseOrderById(id);
           if (result.success) {
-            const data = result.data;
-            console.log('Purchase Order Details from API:', data); // Debug log
+              data = result.data;
+              console.log('Purchase Order Details from API:', data);
+            } else {
+              setError(result.error);
+              console.error('Failed to load purchase order:', result.error);
+              setLoading(false);
+              return;
+            }
+          }
             
             setFormData({
               id: data.id,
@@ -243,7 +269,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               created_by: data.created_by,
               created_date_time: data.created_date_time,
               delete_status: data.delete_status,
-              purchaseTable: data.purchaseTable || [],
+            purchaseTable: data.purchaseTable || [],
               po_notes: data.po_notes,
               
               // UI Helper fields - use names directly from PO detail API
@@ -254,7 +280,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
 
             // Normalize and load items into selectedItems for view/edit table rendering
             try {
-              const apiItems = Array.isArray(data.purchaseTable) ? data.purchaseTable : [];
+            const apiItems = Array.isArray(data.purchaseTable) ? data.purchaseTable : [];
 
               // Load lookups to resolve names from ids
               const lookups = await loadCatalogLookups();
@@ -297,12 +323,8 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               });
               setSelectedItems(normalized);
             } catch (mapErr) {
-              console.warn('Failed to normalize purchaseTable for display:', mapErr);
+            console.warn('Failed to normalize purchaseTable for display:', mapErr);
               setSelectedItems([]);
-            }
-          } else {
-            setError(result.error);
-            console.error('Failed to load purchase order:', result.error);
           }
         } catch (error) {
           setError('An unexpected error occurred while loading the purchase order');
@@ -1128,14 +1150,14 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               <div className="space-y-2">
                 <Label htmlFor="eno">Purchase Order Number (ENO)</Label>
                 <div className="flex gap-2">
-                  <Input
-                    id="eno"
-                    value={formData.eno}
-                    onChange={(e) => handleInputChange('eno', e.target.value)}
+                <Input
+                  id="eno"
+                  value={formData.eno}
+                  onChange={(e) => handleInputChange('eno', e.target.value)}
                     placeholder={!formData.vendor_id ? "Please select a vendor first" : "PO number will be generated"}
-                    readOnly={isViewMode}
-                    className={isViewMode ? "bg-gray-50" : ""}
-                  />
+                  readOnly={isViewMode}
+                  className={isViewMode ? "bg-gray-50" : ""}
+                />
                   {isCreateMode && formData.vendor_id && (
                     <Button
                       type="button"
@@ -1409,9 +1431,9 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="site_incharge_mobile_number">Site Incharge Mobile Number</Label>
-                <div className="p-3 bg-gray-50 border rounded-md">
+                  <div className="p-3 bg-gray-50 border rounded-md">
                   <p className="font-medium">{formData.site_incharge_mobile_number || 'Not available'}</p>
-                </div>
+                  </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -1774,14 +1796,14 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                           <TableCell>
                             {editingItemIndex === index ? (
                               <div className="flex gap-1">
-                                <Button
-                                  size="sm"
+                            <Button
+                              size="sm"
                                   variant="outline"
                                   onClick={() => handleSaveEdit(index)}
                                   className="h-8 px-2"
-                                >
+                            >
                                   Save
-                                </Button>
+                            </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"

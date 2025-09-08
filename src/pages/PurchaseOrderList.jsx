@@ -42,6 +42,10 @@ export function PurchaseOrderList() {
   const [siteIncharges, setSiteIncharges] = useState([]);
   const [vendorMap, setVendorMap] = useState({});
   const [siteInchargeMap, setSiteInchargeMap] = useState({});
+  
+  // State for PO details fetching
+  const [loadingPODetails, setLoadingPODetails] = useState(false);
+  const [poDetailsError, setPoDetailsError] = useState(null);
 
   useEffect(() => {
     loadPurchaseOrders();
@@ -99,6 +103,68 @@ export function PurchaseOrderList() {
   const getSiteInchargeName = (siteInchargeId) => {
     if (!siteInchargeId) return '-';
     return siteInchargeMap[siteInchargeId] || `Site Incharge ${siteInchargeId}`;
+  };
+
+  // Function to fetch PO details and navigate
+  const handleViewPO = async (poId) => {
+    try {
+      setLoadingPODetails(true);
+      setPoDetailsError(null);
+      
+      console.log('Fetching PO details for ID:', poId);
+      const result = await purchaseOrderService.getPurchaseOrderById(poId);
+      
+      if (result.success) {
+        console.log('PO details fetched successfully:', result.data);
+        // Store the PO details in localStorage or sessionStorage for the next page
+        sessionStorage.setItem('poDetails', JSON.stringify(result.data));
+        // Navigate to view page
+        navigate(`/procurement/purchase-order/view/${poId}`);
+      } else {
+        console.error('Failed to fetch PO details:', result.error);
+        setPoDetailsError(result.error);
+        // Still navigate but without the fetched data
+        navigate(`/procurement/purchase-order/view/${poId}`);
+      }
+    } catch (error) {
+      console.error('Error fetching PO details:', error);
+      setPoDetailsError('Failed to fetch PO details. Please try again.');
+      // Still navigate but without the fetched data
+      navigate(`/procurement/purchase-order/view/${poId}`);
+    } finally {
+      setLoadingPODetails(false);
+    }
+  };
+
+  // Function to fetch PO details and navigate to edit
+  const handleEditPO = async (poId) => {
+    try {
+      setLoadingPODetails(true);
+      setPoDetailsError(null);
+      
+      console.log('Fetching PO details for edit, ID:', poId);
+      const result = await purchaseOrderService.getPurchaseOrderById(poId);
+      
+      if (result.success) {
+        console.log('PO details fetched for edit:', result.data);
+        // Store the PO details in localStorage or sessionStorage for the next page
+        sessionStorage.setItem('poDetails', JSON.stringify(result.data));
+        // Navigate to edit page
+        navigate(`/procurement/purchase-order/edit/${poId}`);
+      } else {
+        console.error('Failed to fetch PO details for edit:', result.error);
+        setPoDetailsError(result.error);
+        // Still navigate but without the fetched data
+        navigate(`/procurement/purchase-order/edit/${poId}`);
+      }
+    } catch (error) {
+      console.error('Error fetching PO details for edit:', error);
+      setPoDetailsError('Failed to fetch PO details. Please try again.');
+      // Still navigate but without the fetched data
+      navigate(`/procurement/purchase-order/edit/${poId}`);
+    } finally {
+      setLoadingPODetails(false);
+    }
   };
 
   const loadPurchaseOrders = async (searchQuery = '', sortParams = null, filterParams = null) => {
@@ -468,10 +534,13 @@ export function PurchaseOrderList() {
         {/* Purchase Orders Table */}
         <Card>
           <CardHeader>
+            <CardTitle>Purchase Orders</CardTitle>
+            {poDetailsError && (
+              <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+                {poDetailsError}
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <CardTitle>
-                Purchase Orders ({filteredAndSortedPurchaseOrders.length})
-              </CardTitle>
               
               {/* Filter and Search Controls */}
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -592,11 +661,21 @@ export function PurchaseOrderList() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>
-                                <Eye className="h-4 w-4 mr-2" /> View
+                              <DropdownMenuItem 
+                                onClick={() => handleViewPO(po.id)}
+                                disabled={loadingPODetails}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                {loadingPODetails ? 'Loading...' : 'View'}
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => navigate(`/procurement/purchase-order/edit/${po.id}`)}>
-                                <Edit className="h-4 w-4 mr-2" /> Edit
+                              <DropdownMenuItem 
+                                onClick={() => handleEditPO(po.id)}
+                                disabled={loadingPODetails}
+                                className="cursor-pointer"
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                {loadingPODetails ? 'Loading...' : 'Edit'}
                               </DropdownMenuItem>
                               <DropdownMenuItem className="text-red-600" onClick={() => handleDelete(po.id)}>
                                 <Trash2 className="h-4 w-4 mr-2" /> Delete
@@ -630,7 +709,14 @@ export function PurchaseOrderList() {
                           <div className="mt-2 text-sm text-gray-700 line-clamp-2">{po.po_notes?.po_notes}</div>
                         )}
                         <div className="mt-3">
-                          <Button size="sm" variant="link" onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>Open</Button>
+                          <Button 
+                            size="sm" 
+                            variant="link" 
+                            onClick={() => handleViewPO(po.id)}
+                            disabled={loadingPODetails}
+                          >
+                            {loadingPODetails ? 'Loading...' : 'Open'}
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -710,8 +796,8 @@ export function PurchaseOrderList() {
                   <TableBody>
                     {filteredAndSortedPurchaseOrders.map((po) => (
                       <TableRow key={po.id}>
-                        <TableCell className="text-blue-800 font-medium cursor-pointer hover:underline hover:text-blue-500" onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>
-                          <a href="#" onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}>
+                        <TableCell className="text-blue-800 font-medium cursor-pointer hover:underline hover:text-blue-500" onClick={() => handleViewPO(po.id)}>
+                          <a href="#" onClick={() => handleViewPO(po.id)}>
                             {po.eno}
                           </a>
                         </TableCell>
@@ -744,18 +830,20 @@ export function PurchaseOrderList() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
-                                onClick={() => navigate(`/procurement/purchase-order/view/${po.id}`)}
+                                onClick={() => handleViewPO(po.id)}
+                                disabled={loadingPODetails}
                                 className="cursor-pointer"
                               >
                                 <Eye className="h-4 w-4 mr-2" />
-                                View
+                                {loadingPODetails ? 'Loading...' : 'View'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
-                                onClick={() => navigate(`/procurement/purchase-order/edit/${po.id}`)}
+                                onClick={() => handleEditPO(po.id)}
+                                disabled={loadingPODetails}
                                 className="cursor-pointer"
                               >
                                 <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                                {loadingPODetails ? 'Loading...' : 'Edit'}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => handleDelete(po.id)}
