@@ -449,48 +449,26 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Generate PO number based on vendor with sequential numbering
+  // Generate PO number based on vendor count
   const generatePONumber = async (vendorId, vendorName) => {
-    const currentYear = new Date().getFullYear();
-    const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
-    
-    // Generate vendor-specific prefix based on vendor name
-    let vendorPrefix = 'PO';
-    if (vendorName) {
-      // Extract meaningful characters from vendor name for prefix
-      const cleanName = vendorName.replace(/[^A-Za-z]/g, '').toUpperCase();
-      if (cleanName.length >= 3) {
-        vendorPrefix = cleanName.substring(0, 3);
-      } else if (cleanName.length >= 2) {
-        vendorPrefix = cleanName + 'X';
-      } else {
-        // Fallback to vendor ID if name is too short
-        vendorPrefix = `V${String(vendorId).padStart(2, '0')}`;
-      }
+    if (!vendorId) {
+      return '';
     }
-    
+
     try {
-      // Get the next sequential number for this vendor from backend
-      const response = await coreApiClient.get(`/purchase_orders/next-sequence/${vendorId}`);
-      let sequenceNumber;
+      // Get the count of existing POs for this vendor
+      const countResponse = await fetch(`https://backendaab.in/aabuildersDash/api/purchase_orders/countByVendor?vendorId=${vendorId}`);
+      if (!countResponse.ok) throw new Error("Failed to fetch PO count");
       
-      if (response?.data?.nextSequence) {
-        sequenceNumber = String(response.data.nextSequence).padStart(4, '0');
-        console.log(`Generated sequential PO number for vendor ${vendorId}: ${sequenceNumber}`);
-      } else {
-        // Fallback to 1 if no sequence found
-        sequenceNumber = '0001';
-        console.log(`No existing sequence found for vendor ${vendorId}, starting with 0001`);
-      }
+      const vendorCount = await countResponse.json();
+      const nextPoNumber = vendorCount + 1; // this will be the next PO number
       
-      // Format: VENDOR_PREFIX-YYYY-MM-SEQUENCE
-      return `${vendorPrefix}-${currentYear}-${currentMonth}-${sequenceNumber}`;
+      console.log(`Generated PO number for vendor ${vendorId}: ${nextPoNumber} (count: ${vendorCount})`);
+      return nextPoNumber.toString();
       
-    } catch (error) {
-      console.error('Failed to get next sequence number:', error);
-      // Fallback to timestamp-based number if API fails
-      const timestamp = Date.now().toString().slice(-4);
-      return `${vendorPrefix}-${currentYear}-${currentMonth}-${timestamp}`;
+    } catch (err) {
+      console.error("Failed to fetch PO count", err);
+      return '1'; // fallback to 1 if API fails
     }
   };
 
