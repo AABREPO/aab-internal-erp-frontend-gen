@@ -1164,23 +1164,6 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                   readOnly={isViewMode}
                   className={isViewMode ? "bg-gray-50" : ""}
                 />
-                  {isCreateMode && formData.vendor_id && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        const selectedVendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === formData.vendor_id);
-                        const newPONumber = await generatePONumber(formData.vendor_id, selectedVendor?.vendorName || '');
-                        handleInputChange('eno', newPONumber);
-                        console.log('Regenerated PO number:', newPONumber);
-                      }}
-                      title="Generate new PO number"
-                      className="px-2"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  )}
                 </div>
                 {!formData.vendor_id && isCreateMode && (
                   <p className="text-xs text-gray-500">PO number will be generated automatically when you select a vendor</p>
