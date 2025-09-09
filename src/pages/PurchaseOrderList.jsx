@@ -197,9 +197,25 @@ export function PurchaseOrderList() {
       if (filterParams) {
         params.filter = filterParams;
       } else if (filterBy && filterValue) {
-        // Use current filter state
+        // Use current filter state - convert display names to IDs
+        let apiFilterValue = filterValue;
+        
+        if (filterBy === 'vendor') {
+          // Find vendor ID by name
+          const vendor = vendors.find(v => 
+            (v.vendorName || v.vendor_name || v.name) === filterValue
+          );
+          apiFilterValue = vendor ? (vendor.id || vendor.vendor_id) : filterValue;
+        } else if (filterBy === 'site_incharge') {
+          // Find site incharge ID by name
+          const siteIncharge = siteIncharges.find(s => 
+            (s.siteEngineer || s.name) === filterValue
+          );
+          apiFilterValue = siteIncharge ? siteIncharge.id : filterValue;
+        }
+        
         params.filter = {
-          [filterBy]: filterValue
+          [filterBy]: apiFilterValue
         };
       }
       
@@ -379,11 +395,29 @@ export function PurchaseOrderList() {
   const handleFilterValueChange = async (value) => {
     setFilterValue(value);
     
+    // Convert display name to ID for API filtering
+    let filterValue = value;
+    
+    if (filterBy === 'vendor') {
+      // Find vendor ID by name
+      const vendor = vendors.find(v => 
+        (v.vendorName || v.vendor_name || v.name) === value
+      );
+      filterValue = vendor ? (vendor.id || vendor.vendor_id) : value;
+    } else if (filterBy === 'site_incharge') {
+      // Find site incharge ID by name
+      const siteIncharge = siteIncharges.find(s => 
+        (s.siteEngineer || s.name) === value
+      );
+      filterValue = siteIncharge ? siteIncharge.id : value;
+    }
+    
     // Trigger API call with new filter parameters
     const filterParams = {
-      [filterBy]: value
+      [filterBy]: filterValue
     };
     
+    console.log('Applying filter:', filterParams, 'Original value:', value);
     await loadPurchaseOrders(activeSearchTerm, null, filterParams);
   };
 

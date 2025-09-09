@@ -1517,7 +1517,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="Select category" />
+                                <SelectValue placeholder={item.category || "Select category"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <div className="p-2 border-b">
@@ -1562,7 +1562,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="Select item" />
+                                <SelectValue placeholder={item.item || "Select item"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <div className="p-2 border-b">
@@ -1607,7 +1607,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="Select model" />
+                                <SelectValue placeholder={item.model || "Select model"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <div className="p-2 border-b">
@@ -1652,7 +1652,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="Select brand" />
+                                <SelectValue placeholder={item.brand || "Select brand"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <div className="p-2 border-b">
@@ -1697,7 +1697,7 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
                               }}
                             >
                               <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="Select type" />
+                                <SelectValue placeholder={item.type || "Select type"} />
                               </SelectTrigger>
                               <SelectContent>
                                 <div className="p-2 border-b">
