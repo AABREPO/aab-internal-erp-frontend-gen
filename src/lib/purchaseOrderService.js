@@ -493,7 +493,7 @@ class PurchaseOrderService {
       date: data.date,
       site_incharge_mobile_number: data.site_incharge_mobile_number,
       eno: data.eno,
-      purchaseTable: (data.purchaseTable || []).map(item => ({
+      purchase_table: (data.purchase_table || []).map(item => ({
         item_id: parseInt(item.item_id || item.itemId),
         category_id: parseInt(item.category_id || item.categoryId),
         model_id: parseInt(item.model_id || item.modelId),
