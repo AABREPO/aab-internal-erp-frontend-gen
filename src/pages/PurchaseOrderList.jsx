@@ -48,15 +48,25 @@ export function PurchaseOrderList() {
   const [poDetailsError, setPoDetailsError] = useState(null);
 
   useEffect(() => {
-    loadPurchaseOrders();
-    loadVendorsAndSiteIncharges();
+    const initializeData = async () => {
+      // First load vendor and site incharge data
+      await loadVendorsAndSiteIncharges();
+      // Then load purchase orders
+      await loadPurchaseOrders();
+    };
+    
+    initializeData();
   }, []);
 
   // Load vendor and site incharge data to create name mappings
   const loadVendorsAndSiteIncharges = async () => {
     try {
+      console.log('Loading vendor and site incharge data...');
+      
       // Load vendors
       const vendorsResult = await purchaseOrderService.getAllVendorNames();
+      console.log('Vendors API response:', vendorsResult);
+      
       if (vendorsResult.success && Array.isArray(vendorsResult.data)) {
         setVendors(vendorsResult.data);
         // Create vendor ID to name mapping
@@ -70,10 +80,15 @@ export function PurchaseOrderList() {
         });
         setVendorMap(vendorMapping);
         console.log('Vendor mapping created:', vendorMapping);
+        console.log('Vendor mapping size:', Object.keys(vendorMapping).length);
+      } else {
+        console.error('Failed to load vendors:', vendorsResult.error);
       }
 
       // Load site incharges
       const siteInchargesResult = await purchaseOrderService.getAllSiteIncharges();
+      console.log('Site Incharges API response:', siteInchargesResult);
+      
       if (siteInchargesResult.success && Array.isArray(siteInchargesResult.data)) {
         setSiteIncharges(siteInchargesResult.data);
         // Create site incharge ID to name mapping
@@ -87,6 +102,9 @@ export function PurchaseOrderList() {
         });
         setSiteInchargeMap(siteInchargeMapping);
         console.log('Site Incharge mapping created:', siteInchargeMapping);
+        console.log('Site Incharge mapping size:', Object.keys(siteInchargeMapping).length);
+      } else {
+        console.error('Failed to load site incharges:', siteInchargesResult.error);
       }
     } catch (error) {
       console.error('Error loading vendor/site incharge data:', error);
@@ -96,13 +114,21 @@ export function PurchaseOrderList() {
   // Helper function to get vendor name by ID
   const getVendorName = (vendorId) => {
     if (!vendorId) return '-';
-    return vendorMap[vendorId] || `Vendor ${vendorId}`;
+    const vendorName = vendorMap[vendorId];
+    if (!vendorName) {
+      console.warn(`Vendor name not found for ID: ${vendorId}. Available mappings:`, Object.keys(vendorMap));
+    }
+    return vendorName || `Vendor ${vendorId}`;
   };
 
   // Helper function to get site incharge name by ID
   const getSiteInchargeName = (siteInchargeId) => {
     if (!siteInchargeId) return '-';
-    return siteInchargeMap[siteInchargeId] || `Site Incharge ${siteInchargeId}`;
+    const siteInchargeName = siteInchargeMap[siteInchargeId];
+    if (!siteInchargeName) {
+      console.warn(`Site incharge name not found for ID: ${siteInchargeId}. Available mappings:`, Object.keys(siteInchargeMap));
+    }
+    return siteInchargeName || `Site Incharge ${siteInchargeId}`;
   };
 
   // Function to fetch PO details and navigate
