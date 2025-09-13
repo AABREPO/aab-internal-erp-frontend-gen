@@ -218,6 +218,37 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
       .slice(0, 10);
   };
 
+  // Helper functions to get names by ID (similar to list page)
+  const getVendorNameById = (vendorId) => {
+    if (!vendorId) return '-';
+    const vendor = vendors.find(v => (v.id || v.vendor_id)?.toString() === vendorId?.toString());
+    return vendor?.vendorName || vendor?.vendor_name || vendor?.name || `Vendor ${vendorId}`;
+  };
+
+  const getClientNameById = (clientId) => {
+    if (!clientId) return '-';
+    const client = projects.find(p => (p.id || p.project_id)?.toString() === clientId?.toString());
+    return client?.name || client?.project_name || client?.siteName || `Client ${clientId}`;
+  };
+
+  const getSiteInchargeNameById = (siteInchargeId) => {
+    if (!siteInchargeId) return '-';
+    const siteIncharge = siteIncharges.find(s => s.id?.toString() === siteInchargeId?.toString());
+    return siteIncharge?.siteEngineer || siteIncharge?.name || `Site Incharge ${siteInchargeId}`;
+  };
+
+  // Function to update form data with resolved names
+  const updateFormDataWithResolvedNames = () => {
+    if (formData.vendor_id || formData.client_id || formData.site_incharge_id) {
+      setFormData(prev => ({
+        ...prev,
+        vendor_name: getVendorNameById(prev.vendor_id),
+        client_name: getClientNameById(prev.client_id),
+        siteEngineer: getSiteInchargeNameById(prev.site_incharge_id),
+      }));
+    }
+  };
+
 
 
   useEffect(() => {
@@ -272,10 +303,10 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
               purchaseTable: data.purchaseTable || [],
               po_notes: data.po_notes,
               
-              // UI Helper fields - use names directly from PO detail API
-              vendor_name: data.vendor_name || data.vendor?.name || `Vendor ${data.vendor_id}`,
-              client_name: data.client_name || data.client?.name || `Client ${data.client_id}`,
-              siteEngineer: data.siteEngineer || data.site_incharge?.name || `Site Incharge ${data.site_incharge_id}`,
+              // UI Helper fields - will be resolved after vendors/clients are loaded
+              vendor_name: data.vendor_name || data.vendor?.name || '',
+              client_name: data.client_name || data.client?.name || '',
+              siteEngineer: data.siteEngineer || data.site_incharge?.name || '',
             });
 
             // Normalize and load items into selectedItems for view/edit table rendering
@@ -425,6 +456,14 @@ export function PurchaseOrderForm({ modeOverride } = {}) {
     };
     loadIncharges();
   }, []);
+
+  // Update form data with resolved names when vendors, clients, or site incharges are loaded
+  useEffect(() => {
+    if ((vendors.length > 0 || projects.length > 0 || siteIncharges.length > 0) && 
+        (formData.vendor_id || formData.client_id || formData.site_incharge_id)) {
+      updateFormDataWithResolvedNames();
+    }
+  }, [vendors, projects, siteIncharges, formData.vendor_id, formData.client_id, formData.site_incharge_id]);
 
   // Add keyboard event listener for backspace key
   useEffect(() => {
